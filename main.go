@@ -1,3 +1,4 @@
+// dx7 is a SuperCollider-based FM synthesizer.
 package main
 
 import (
@@ -7,14 +8,12 @@ import (
 	"log"
 )
 
-const (
-	localAddr   = "127.0.0.1:57110"
-	scsynthAddr = "127.0.0.1:57120"
-	defName     = "dx7voice"
-)
-
 func main() {
-	// setup the client
+	const (
+		localAddr   = "127.0.0.1:57110"
+		scsynthAddr = "127.0.0.1:57120"
+		defName     = "dx7voice"
+	)
 	client := sc.NewClient(localAddr)
 	err := client.Connect(scsynthAddr)
 	if err != nil {
