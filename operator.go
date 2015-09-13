@@ -7,19 +7,46 @@ import (
 
 // Operator is a sine wave signal combined with an envelope generator.
 type Operator struct {
-	osc    SinOsc
-	env    EnvGen
-	Levels [4]Input
-	Rates  [4]Input
+	// Freq is the oscillator frequency.
+	Freq Input
+	// Gain is the output gain.
+	Gain Input
+	// A is amp envelope attack (in seconds)
+	A Input
+	// D is amp envelope decay (in seconds)
+	D Input
+	// S is amp envelope sustain [0, 1]
+	S Input
+	// R is amp envelope release (in seconds)
+	R Input
+	// Gate trigger the envelope and holds it open while > 0
+	Gate Input
+	// Done is the ugen done action
+	Done int
 }
 
 // defaults
 func (self *Operator) defaults() {
-	if self.osc.Freq == nil {
-		self.osc.Freq = C(440)
+	if self.Freq == nil {
+		self.Freq = C(440)
 	}
-	if self.osc.Phase == nil {
-		self.osc.Phase = C(0)
+	if self.Gain == nil {
+		self.Gain = C(1)
+	}
+	if self.A == nil {
+		self.A = C(0.01)
+	}
+	if self.D == nil {
+		self.D = C(0.3)
+	}
+	if self.S == nil {
+		self.S = C(0.5)
+	}
+	if self.R == nil {
+		self.R = C(1)
+	}
+	if self.Gate == nil {
+		self.Gate = C(1)
 	}
 }
 
@@ -27,13 +54,15 @@ func (self *Operator) defaults() {
 // If rate is an unsupported value this method will cause a runtime panic.
 func (self Operator) Rate(rate int8) Input {
 	CheckRate(rate)
-	return self.osc.Rate(AR).Mul(self.env.Rate(AR))
-}
+	(&self).defaults()
 
-// NewOperator creates a new operator
-func NewOperator(freq Input) Operator {
-	return Operator{
-		osc: SinOsc{Freq: freq},
-		env: EnvGen{Env: EnvPairs{}},
-	}
+	adsr := EnvADSR{A: self.A, D: self.D, S: self.S, R: self.R}
+	env := EnvGen{
+		Env:        adsr,
+		Gate:       self.Gate,
+		LevelScale: self.Gain,
+		Done:       self.Done,
+	}.Rate(AR)
+
+	return SinOsc{Freq: self.Freq}.Rate(AR).Mul(env)
 }
