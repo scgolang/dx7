@@ -9,6 +9,48 @@ import (
 	"log"
 )
 
+var (
+	defName = "dx7voice"
+
+	// algorithm1
+	//
+	//        Op6
+	//         |
+	//        Op5
+	//         |
+	//  Op2   Op4
+	//   |     |
+	//  Op1   Op3
+	//
+	algorithm1 = sc.NewSynthdef(defName, func(p Params) Ugen {
+		gate := p.Add("gate", 1)
+		freq := p.Add("freq", 440)
+		gain := p.Add("gain", 1)
+		op1amt := p.Add("op1amt", 0)
+		bus := C(0)
+
+		// modulator
+		op2 := Operator{
+			Freq: freq,
+			Gate: gate,
+			Gain: gain,
+			Done: FreeEnclosing,
+		}.Rate(AR)
+
+		// carrier
+		op1 := Operator{
+			Freq: freq,
+			FM:   op2,
+			Amt:  op1amt,
+			Gate: gate,
+			Gain: gain,
+			Done: FreeEnclosing,
+		}.Rate(AR)
+
+		return Out{bus, op1}.Rate(AR)
+	})
+)
+
 func main() {
 	const (
 		// polyphony is used to scale the gain of each synth voice
@@ -17,7 +59,6 @@ func main() {
 		midiBufferSize = 1024
 		localAddr      = "127.0.0.1:57110"
 		scsynthAddr    = "127.0.0.1:57120"
-		defName        = "dx7voice"
 	)
 	client := sc.NewClient(localAddr)
 	err := client.Connect(scsynthAddr)
@@ -38,22 +79,7 @@ func main() {
 	}
 
 	// send a synthdef
-	def := sc.NewSynthdef(defName, func(p Params) Ugen {
-		gate := p.Add("gate", 1)
-		freq := p.Add("freq", 440)
-		gain := p.Add("gain", 1)
-		bus := C(0)
-
-		op := Operator{
-			Freq: freq,
-			Gate: gate,
-			Gain: gain,
-			Done: FreeEnclosing,
-		}.Rate(AR)
-
-		return Out{bus, op}.Rate(AR)
-	})
-	err = client.SendDef(def)
+	err = client.SendDef(algorithm1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,7 +87,8 @@ func main() {
 	portmidi.Initialize()
 	defer portmidi.Terminate()
 
-	// Use this section of code to figure out which MIDI device to open.
+	// Uncomment this section of code to figure out
+	// which MIDI device to open.
 	// midiDevices := portmidi.CountDevices()
 	// fmt.Printf("%d midi devices:\n", midiDevices)
 	// for i := 0; i < midiDevices; i++ {
@@ -78,7 +105,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// synths slice keeps track of voice allocation
+	// this slice keeps track of voice allocation
 	synths := make([]*sc.Synth, 127)
 
 	midiEvents := midiInput.Listen()
@@ -108,9 +135,10 @@ MidiLoop:
 			// trigger the new note
 			sid := client.NextSynthID()
 			controls := map[string]float32{
-				"gate": float32(1),
-				"freq": sc.Midicps(note.Note),
-				"gain": float32(note.Velocity) / (127 * polyphony),
+				"gate":   float32(1),
+				"freq":   sc.Midicps(note.Note),
+				"gain":   float32(note.Velocity) / (127 * polyphony),
+				"op1amt": float32(1000),
 			}
 			synth, err := dg.Synth(defName, sid, sc.AddToTail, controls)
 			if err != nil {

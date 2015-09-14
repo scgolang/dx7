@@ -9,6 +9,10 @@ import (
 type Operator struct {
 	// Freq is the oscillator frequency.
 	Freq Input
+	// FM is the frequency modulation input.
+	FM Input
+	// Amt controls the frequency modulation amount.
+	Amt Input
 	// Gain is the output gain.
 	Gain Input
 	// A is amp envelope attack (in seconds)
@@ -29,6 +33,12 @@ type Operator struct {
 func (self *Operator) defaults() {
 	if self.Freq == nil {
 		self.Freq = C(440)
+	}
+	if self.FM == nil {
+		self.FM = C(1)
+	}
+	if self.Amt == nil {
+		self.Amt = C(0)
 	}
 	if self.Gain == nil {
 		self.Gain = C(1)
@@ -64,5 +74,7 @@ func (self Operator) Rate(rate int8) Input {
 		Done:       self.Done,
 	}.Rate(AR)
 
-	return SinOsc{Freq: self.Freq}.Rate(AR).Mul(env)
+	freq := self.Freq.Add(self.FM.Mul(self.Amt))
+
+	return SinOsc{Freq: freq}.Rate(AR).Mul(env)
 }
