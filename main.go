@@ -2,53 +2,14 @@
 package main
 
 import (
+	"log"
+
 	"github.com/rakyll/portmidi"
 	"github.com/scgolang/sc"
-	. "github.com/scgolang/sc/types"
-	. "github.com/scgolang/sc/ugens"
-	"log"
 )
 
 var (
 	defName = "dx7voice"
-
-	// algorithm1
-	//
-	//        Op6
-	//         |
-	//        Op5
-	//         |
-	//  Op2   Op4
-	//   |     |
-	//  Op1   Op3
-	//
-	algorithm1 = sc.NewSynthdef(defName, func(p Params) Ugen {
-		gate := p.Add("gate", 1)
-		freq := p.Add("freq", 440)
-		gain := p.Add("gain", 1)
-		op1amt := p.Add("op1amt", 0)
-		bus := C(0)
-
-		// modulator
-		op2 := Operator{
-			Freq: freq,
-			Gate: gate,
-			Gain: gain,
-			Done: FreeEnclosing,
-		}.Rate(AR)
-
-		// carrier
-		op1 := Operator{
-			Freq: freq,
-			FM:   op2,
-			Amt:  op1amt,
-			Gate: gate,
-			Gain: gain,
-			Done: FreeEnclosing,
-		}.Rate(AR)
-
-		return Out{bus, op1}.Rate(AR)
-	})
 )
 
 func main() {
@@ -60,9 +21,10 @@ func main() {
 		localAddr      = "127.0.0.1:57110"
 		scsynthAddr    = "127.0.0.1:57120"
 	)
+
 	client := sc.NewClient(localAddr)
-	err := client.Connect(scsynthAddr)
-	if err != nil {
+
+	if err := client.Connect(scsynthAddr); err != nil {
 		log.Fatal(err)
 	}
 
@@ -79,8 +41,7 @@ func main() {
 	}
 
 	// send a synthdef
-	err = client.SendDef(algorithm1)
-	if err != nil {
+	if err := client.SendDef(algorithm1); err != nil {
 		log.Fatal(err)
 	}
 
@@ -119,10 +80,9 @@ MidiLoop:
 			// note off
 			if note.Velocity == 0 {
 				if synths[note.Note] != nil {
-					err = synths[note.Note].Set(map[string]float32{
-						"gate": float32(0),
-					})
-					if err != nil {
+					// set gate to 0
+					ctls := map[string]float32{"gate": float32(0)}
+					if err = synths[note.Note].Set(ctls); err != nil {
 						log.Fatal(err)
 					}
 				} else {
@@ -135,10 +95,10 @@ MidiLoop:
 			// trigger the new note
 			sid := client.NextSynthID()
 			controls := map[string]float32{
-				"gate":   float32(1),
-				"freq":   sc.Midicps(note.Note),
-				"gain":   float32(note.Velocity) / (127 * polyphony),
-				"op1amt": float32(1000),
+				"gate":    float32(1),
+				"op1freq": sc.Midicps(note.Note),
+				"op1gain": float32(note.Velocity) / (127 * polyphony),
+				"op1amt":  float32(100),
 			}
 			synth, err := dg.Synth(defName, sid, sc.AddToTail, controls)
 			if err != nil {

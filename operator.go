@@ -1,80 +1,88 @@
 package main
 
 import (
-	. "github.com/scgolang/sc/types"
-	. "github.com/scgolang/sc/ugens"
+	"github.com/scgolang/sc"
 )
 
 // Operator is a sine wave signal combined with an envelope generator.
 type Operator struct {
 	// Freq is the oscillator frequency.
-	Freq Input
+	Freq sc.Input
+
 	// FM is the frequency modulation input.
-	FM Input
+	FM sc.Input
+
 	// Amt controls the frequency modulation amount.
-	Amt Input
+	Amt sc.Input
+
 	// Gain is the output gain.
-	Gain Input
+	Gain sc.Input
+
 	// A is amp envelope attack (in seconds)
-	A Input
+	A sc.Input
+
 	// D is amp envelope decay (in seconds)
-	D Input
+	D sc.Input
+
 	// S is amp envelope sustain [0, 1]
-	S Input
+	S sc.Input
+
 	// R is amp envelope release (in seconds)
-	R Input
+	R sc.Input
+
 	// Gate trigger the envelope and holds it open while > 0
-	Gate Input
+	Gate sc.Input
+
 	// Done is the ugen done action
 	Done int
 }
 
 // defaults
-func (self *Operator) defaults() {
-	if self.Freq == nil {
-		self.Freq = C(440)
+func (op *Operator) defaults() {
+	if op.Freq == nil {
+		op.Freq = sc.C(440)
 	}
-	if self.FM == nil {
-		self.FM = C(1)
+	if op.FM == nil {
+		op.FM = sc.C(1)
 	}
-	if self.Amt == nil {
-		self.Amt = C(0)
+	if op.Amt == nil {
+		op.Amt = sc.C(0)
 	}
-	if self.Gain == nil {
-		self.Gain = C(1)
+	if op.Gain == nil {
+		op.Gain = sc.C(1)
 	}
-	if self.A == nil {
-		self.A = C(0.01)
+	if op.A == nil {
+		op.A = sc.C(0.01)
 	}
-	if self.D == nil {
-		self.D = C(0.3)
+	if op.D == nil {
+		op.D = sc.C(0.3)
 	}
-	if self.S == nil {
-		self.S = C(0.5)
+	if op.S == nil {
+		op.S = sc.C(0.5)
 	}
-	if self.R == nil {
-		self.R = C(1)
+	if op.R == nil {
+		op.R = sc.C(1)
 	}
-	if self.Gate == nil {
-		self.Gate = C(1)
+	if op.Gate == nil {
+		op.Gate = sc.C(1)
 	}
 }
 
 // Rate creates a new ugen at a specific rate.
 // If rate is an unsupported value this method will cause a runtime panic.
-func (self Operator) Rate(rate int8) Input {
-	CheckRate(rate)
-	(&self).defaults()
+func (op Operator) Rate(rate int8) sc.Input {
+	sc.CheckRate(rate)
+	(&op).defaults()
 
-	adsr := EnvADSR{A: self.A, D: self.D, S: self.S, R: self.R}
-	env := EnvGen{
+	adsr := sc.EnvADSR{A: op.A, D: op.D, S: op.S, R: op.R}
+	env := sc.EnvGen{
 		Env:        adsr,
-		Gate:       self.Gate,
-		LevelScale: self.Gain,
-		Done:       self.Done,
-	}.Rate(AR)
+		Gate:       op.Gate,
+		LevelScale: op.Gain,
+		Done:       op.Done,
+	}.Rate(sc.AR)
 
-	freq := self.Freq.Add(self.FM.Mul(self.Amt))
+	freq := op.Freq.Add(op.FM.Mul(op.Amt))
 
-	return SinOsc{Freq: freq}.Rate(AR).Mul(env)
+	return sc.SinOsc{Freq: freq}.Rate(sc.AR).Mul(env)
 }
