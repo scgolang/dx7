@@ -2,7 +2,9 @@
 package main
 
 import (
+	"flag"
 	"log"
+	"os"
 
 	"github.com/rakyll/portmidi"
 	"github.com/scgolang/sc"
@@ -15,16 +17,24 @@ var (
 func main() {
 	const (
 		// polyphony is used to scale the gain of each synth voice
-		polyphony      = 4
-		midiDeviceId   = 3
-		midiBufferSize = 1024
-		localAddr      = "127.0.0.1:57110"
-		scsynthAddr    = "127.0.0.1:57120"
+		polyphony           = 4
+		defaultMidiDeviceId = 0
+		midiBufferSize      = 1024
+		localAddr           = "127.0.0.1:57110"
+		defaultScsynthAddr  = "127.0.0.1:57120"
 	)
+
+	var (
+		fs           = flag.NewFlagSet("", flag.ExitOnError)
+		midiDeviceId = fs.Int("device", defaultMidiDeviceId, "MIDI Device ID")
+		scsynthAddr  = fs.String("scsynth", defaultScsynthAddr, "scsynth address")
+	)
+
+	fs.Parse(os.Args[1:])
 
 	client := sc.NewClient(localAddr)
 
-	if err := client.Connect(scsynthAddr); err != nil {
+	if err := client.Connect(*scsynthAddr); err != nil {
 		log.Fatal(err)
 	}
 
@@ -57,7 +67,7 @@ func main() {
 	// 	fmt.Printf("%d\t%v\n", did, portmidi.GetDeviceInfo(did))
 	// }
 
-	midiDevice := portmidi.DeviceId(midiDeviceId)
+	midiDevice := portmidi.DeviceId(*midiDeviceId)
 	midiInput, err := portmidi.NewInputStream(midiDevice, midiBufferSize)
 	if midiInput != nil {
 		defer midiInput.Close()
