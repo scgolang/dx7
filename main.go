@@ -3,6 +3,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -22,9 +23,25 @@ func main() {
 		fs           = flag.NewFlagSet("", flag.ExitOnError)
 		midiDeviceId = fs.Int("device", defaultMidiDeviceId, "MIDI Device ID")
 		scsynthAddr  = fs.String("scsynth", defaultScsynthAddr, "scsynth address")
+		listDevices  = fs.Bool("list", false, "list MIDI devices")
 	)
 
+	// parse cli
 	fs.Parse(os.Args[1:])
+
+	// initialize MIDI
+	portmidi.Initialize()
+	defer portmidi.Terminate()
+
+	if *listDevices {
+		midiDevices := portmidi.CountDevices()
+		fmt.Printf("%d midi devices:\n", midiDevices)
+		for i := 0; i < midiDevices; i++ {
+			did := portmidi.DeviceId(i)
+			fmt.Printf("%d\t%v\n", did, portmidi.GetDeviceInfo(did))
+		}
+		return
+	}
 
 	client := sc.NewClient(localAddr)
 
@@ -51,17 +68,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	portmidi.Initialize()
-	defer portmidi.Terminate()
-
 	// Uncomment this section of code to figure out
 	// which MIDI device to open.
-	// midiDevices := portmidi.CountDevices()
-	// fmt.Printf("%d midi devices:\n", midiDevices)
-	// for i := 0; i < midiDevices; i++ {
-	// 	did := portmidi.DeviceId(i)
-	// 	fmt.Printf("%d\t%v\n", did, portmidi.GetDeviceInfo(did))
-	// }
 
 	midiDevice := portmidi.DeviceId(*midiDeviceId)
 	midiInput, err := portmidi.NewInputStream(midiDevice, midiBufferSize)
