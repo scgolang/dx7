@@ -24,6 +24,7 @@ func main() {
 		midiDeviceId = fs.Int("device", defaultMidiDeviceId, "MIDI Device ID")
 		scsynthAddr  = fs.String("scsynth", defaultScsynthAddr, "scsynth address")
 		listDevices  = fs.Bool("list", false, "list MIDI devices")
+		dumposc      = fs.Bool("dumposc", false, "have scsynth dump OSC messages on stdout")
 	)
 
 	// parse cli
@@ -49,12 +50,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Uncomment this if you want scsynth to dump all the
-	// midi messages it receives.
-	// err = client.DumpOSC(sc.DumpAll)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	// Tell scsynth to dump all the midi messages it receives.
+	if *dumposc {
+		if err := client.DumpOSC(sc.DumpAll); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	// add the default group
 	defaultGroup, err := client.AddDefaultGroup()
