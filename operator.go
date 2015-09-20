@@ -86,3 +86,30 @@ func (op Operator) Rate(rate int8) sc.Input {
 
 	return sc.SinOsc{Freq: freq}.Rate(sc.AR).Mul(env)
 }
+
+// OperatorConfig provides a way to represent
+// operator configuration as XML. All the members of this
+// struct correspond to members of Operator.
+type OperatorConfig struct {
+	Freq float32 `xml:"freq,attr"`
+	Amt  float32 `xml:"amt,attr"`
+	Gain float32 `xml:"gain,attr"`
+	A    float32 `xml:"attack,attr"`
+	D    float32 `xml:"decay,attr"`
+	S    float32 `xml:"sustain,attr"`
+	R    float32 `xml:"release,attr"`
+}
+
+// Operator return an operator configured with the settings
+// from this OperatorConfig.
+func (opconfig OperatorConfig) Operator() Operator {
+	return Operator{
+		Freq: sc.C(opconfig.Freq),
+		Amt:  sc.C(opconfig.Amt),
+		Gain: sc.C(opconfig.Gain),
+		A:    sc.C(opconfig.A),
+		D:    sc.C(opconfig.D),
+		S:    sc.C(opconfig.S),
+		R:    sc.C(opconfig.R),
+	}
+}

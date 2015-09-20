@@ -4,6 +4,12 @@ import (
 	"github.com/rakyll/portmidi"
 )
 
+// MIDIHandler
+type MIDIHandler interface {
+	Play(Note) error
+	Control(CC) error
+}
+
 const (
 	NoteEvent = iota
 	ControlEvent
