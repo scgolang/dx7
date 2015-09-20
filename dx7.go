@@ -109,11 +109,11 @@ func (dx7 *DX7) Control(cc CC) error {
 // NewDX7 returns a DX7 using the defaultAlgorithm.
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
-func NewDX7(client *sc.Client, group *sc.Group) MIDIHandler {
-	return &DX7{
-		client: client,
-		group:  group,
+func NewDX7(client *sc.Client, group *sc.Group) (MIDIHandler, error) {
+	if err := client.SendDef(defaultAlgorithm); err != nil {
+		return nil, err
 	}
+	return &DX7{client: client, group: group}, nil
 }
 
 // Wire represents a connection between two operators.

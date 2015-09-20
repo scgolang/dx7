@@ -39,15 +39,15 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 
+	// add the default group
 	defaultGroup, err := client.AddDefaultGroup()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	dx7 := NewDX7(client, defaultGroup)
-
-	// TODO: have the dx7 send whatever synthdef it is using
-	if err := client.SendDef(defaultAlgorithm); err != nil {
+	// initialize a new dx7
+	dx7, err := NewDX7(client, defaultGroup)
+	if err != nil {
 		log.Fatal(err)
 	}
 
