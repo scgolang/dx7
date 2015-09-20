@@ -72,9 +72,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	midiEvents := midiInput.Listen()
-
-	for event := range midiEvents {
+	for event := range midiInput.Listen() {
 		switch event.Status {
 		case NoteStatus:
 			if err := dx7.Play(NewNote(event)); err != nil {
