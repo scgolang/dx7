@@ -5,38 +5,13 @@ import "github.com/scgolang/sc"
 // defaultAlgorithm
 //    Op2 ---> Op1
 var defaultAlgorithm = sc.NewSynthdef(defaultDefName, func(p sc.Params) sc.Ugen {
-	var (
-		gate = p.Add("gate", 1)
-
-		op1freq = p.Add("op1freq", 440)
-		op1gain = p.Add("op1gain", 1)
-		op1amt  = p.Add("op1amt", 0)
-
-		op2freq = p.Add("op2freq", 440)
-		op2gain = p.Add("op2gain", 1)
-		op2amt  = p.Add("op2amt", 0)
-
-		bus = sc.C(0)
-	)
+	gate, bus := p.Add("gate", 1), sc.C(0)
 
 	// modulator
-	op2 := Operator{
-		Freq: op2freq,
-		Amt:  op2amt,
-		Gate: gate,
-		Gain: op2gain,
-		Done: sc.FreeEnclosing,
-	}.Rate(sc.AR)
+	op2 := NewOperator(2, p, gate, nil)
 
 	// carrier
-	op1 := Operator{
-		Freq: op1freq,
-		FM:   op2,
-		Amt:  op1amt,
-		Gate: gate,
-		Gain: op1gain,
-		Done: sc.FreeEnclosing,
-	}.Rate(sc.AR)
+	op1 := NewOperator(1, p, gate, op2)
 
 	// output signal
 	sig := sc.Multi(op1, op1)

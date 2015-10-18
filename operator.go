@@ -1,7 +1,19 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/scgolang/sc"
+)
+
+const (
+	defaultFreq    = 440
+	defaultGain    = 1
+	defaultAmt     = 0
+	defaultAttack  = 0.01
+	defaultDecay   = 0.3
+	defaultSustain = 0.5
+	defaultRelease = 1
 )
 
 // Operator is a sine wave signal combined with an envelope generator.
@@ -37,31 +49,31 @@ type Operator struct {
 	Done int
 }
 
-// defaults
+// defaults set default values for an operator.
 func (op *Operator) defaults() {
 	if op.Freq == nil {
-		op.Freq = sc.C(440)
+		op.Freq = sc.C(defaultFreq)
+	}
+	if op.Gain == nil {
+		op.Gain = sc.C(defaultGain)
+	}
+	if op.Amt == nil {
+		op.Amt = sc.C(defaultAmt)
 	}
 	if op.FM == nil {
 		op.FM = sc.C(0)
 	}
-	if op.Amt == nil {
-		op.Amt = sc.C(0)
-	}
-	if op.Gain == nil {
-		op.Gain = sc.C(1)
-	}
 	if op.A == nil {
-		op.A = sc.C(0.01)
+		op.A = sc.C(defaultAttack)
 	}
 	if op.D == nil {
-		op.D = sc.C(0.3)
+		op.D = sc.C(defaultDecay)
 	}
 	if op.S == nil {
-		op.S = sc.C(0.5)
+		op.S = sc.C(defaultSustain)
 	}
 	if op.R == nil {
-		op.R = sc.C(1)
+		op.R = sc.C(defaultRelease)
 	}
 	if op.Gate == nil {
 		op.Gate = sc.C(1)
@@ -71,9 +83,11 @@ func (op *Operator) defaults() {
 // Rate creates a new ugen at a specific rate.
 // If rate is an unsupported value this method will cause a runtime panic.
 func (op Operator) Rate(rate int8) sc.Input {
+	// Check the rate and set defaults.
 	sc.CheckRate(rate)
 	(&op).defaults()
 
+	// Amp Envelope
 	adsr := sc.EnvADSR{A: op.A, D: op.D, S: op.S, R: op.R}
 	env := sc.EnvGen{
 		Env:        adsr,
@@ -82,7 +96,37 @@ func (op Operator) Rate(rate int8) sc.Input {
 		Done:       op.Done,
 	}.Rate(sc.AR)
 
+	// Modulate frequency with FM.
 	freq := op.Freq.Add(op.FM.Mul(op.Amt))
 
+	// Return the carrier.
 	return sc.SinOsc{Freq: freq}.Rate(sc.AR).Mul(env)
+}
+
+// NewOperator creates an operator with a specific index
+// and adds synth params to a synthdef.
+func NewOperator(i int, p sc.Params, gate, fm sc.Input) sc.Input {
+	var (
+		name    = "op" + strconv.Itoa(i)
+		freq    = p.Add(name+"freq", defaultFreq)
+		gain    = p.Add(name+"gain", defaultGain)
+		amt     = p.Add(name+"amt", defaultAmt)
+		attack  = p.Add(name+"attack", defaultAttack)
+		decay   = p.Add(name+"decay", defaultDecay)
+		sustain = p.Add(name+"sustain", defaultSustain)
+		release = p.Add(name+"release", defaultRelease)
+	)
+
+	return Operator{
+		Gate: gate,
+		Freq: freq,
+		Gain: gain,
+		FM:   fm,
+		Amt:  amt,
+		A:    attack,
+		D:    decay,
+		S:    sustain,
+		R:    release,
+		Done: sc.FreeEnclosing,
+	}.Rate(sc.AR)
 }
