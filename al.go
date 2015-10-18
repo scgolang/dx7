@@ -38,5 +38,8 @@ var defaultAlgorithm = sc.NewSynthdef(defaultDefName, func(p sc.Params) sc.Ugen 
 		Done: sc.FreeEnclosing,
 	}.Rate(sc.AR)
 
-	return sc.Out{bus, op1}.Rate(sc.AR)
+	// output signal
+	sig := sc.Multi(op1, op1)
+
+	return sc.Out{bus, sig}.Rate(sc.AR)
 })
