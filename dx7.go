@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/scgolang/sc"
 )
@@ -17,51 +18,9 @@ const (
 	defaultDefName = "defaultDX7voice"
 )
 
-// defaultAlgorithm
-//
-//    Op2
-//     |
-//    Op1
-//
-var defaultAlgorithm = sc.NewSynthdef(defaultDefName, func(p sc.Params) sc.Ugen {
-	var (
-		gate = p.Add("gate", 1)
-
-		op1freq = p.Add("op1freq", 440)
-		op1gain = p.Add("op1gain", 1)
-		op1amt  = p.Add("op1amt", 0)
-
-		op2freq = p.Add("op2freq", 440)
-		op2gain = p.Add("op2gain", 1)
-		op2amt  = p.Add("op2amt", 0)
-
-		bus = sc.C(0)
-	)
-
-	// modulator
-	op2 := Operator{
-		Freq: op2freq,
-		Amt:  op2amt,
-		Gate: gate,
-		Gain: op2gain,
-		Done: sc.FreeEnclosing,
-	}.Rate(sc.AR)
-
-	// carrier
-	op1 := Operator{
-		Freq: op1freq,
-		FM:   op2,
-		Amt:  op1amt,
-		Gate: gate,
-		Gain: op1gain,
-		Done: sc.FreeEnclosing,
-	}.Rate(sc.AR)
-
-	return sc.Out{bus, op1}.Rate(sc.AR)
-})
-
 // DX7 encapsulates the synth architecture of the legendary Yamaha DX7.
 type DX7 struct {
+	cfg      *config
 	client   *sc.Client
 	group    *sc.Group
 	voices   [numVoices]*sc.Synth
@@ -99,22 +58,58 @@ func (dx7 *DX7) Play(note Note) error {
 	return nil
 }
 
-// Control provides control over the DX7 using MIDI CC.
-func (dx7 *DX7) Control(cc CC) error {
+// Control provides control over the DX7 using control messages.
+func (dx7 *DX7) Control(ctrl Ctrl) error {
 	// TODO: implement
+	return nil
+}
+
+// Listen listens for events (either MIDI or OSC).
+func (dx7 *DX7) Listen() error {
+	// Listen for MIDI or OSC events, depending on
+	// whether an events address was specified.
+	if dx7.cfg.eventsAddr == "" {
+		if err := MidiListen(dx7.cfg.midiDeviceID, dx7); err != nil {
+			return err
+		}
+	} else {
+		// Listen for OSC events.
+	}
 	return nil
 }
 
 // NewDX7 returns a DX7 using the defaultAlgorithm.
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
-func NewDX7(c *sc.Client, g *sc.Group) (MIDIHandler, error) {
-	if err := c.SendDef(defaultAlgorithm); err != nil {
+func NewDX7(cfg *config) (*DX7, error) {
+	// Initialize a new supercollider client.
+	client := sc.NewClient(cfg.localAddr)
+	if err := client.Connect(cfg.scsynthAddr); err != nil {
+		log.Fatal(err)
+	}
+
+	// Tell scsynth to dump all the midi messages it receives.
+	if cfg.dumpOSC {
+		if err := client.DumpOSC(sc.DumpAll); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	// Add the default group.
+	defaultGroup, err := client.AddDefaultGroup()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Send a synthdef.
+	if err := client.SendDef(defaultAlgorithm); err != nil {
 		return nil, err
 	}
+
 	return &DX7{
-		client:   c,
-		group:    g,
+		cfg:      cfg,
+		client:   client,
+		group:    defaultGroup,
 		curVoice: defaultDefName,
 	}, nil
 }
