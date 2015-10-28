@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"math"
 
@@ -26,7 +25,13 @@ const (
 	freqScaleLo = float32(-8)
 
 	// freqScaleHi is the max value for op2freqscale (as a power of 2).
-	freqScaleHi = float32(4)
+	freqScaleHi = float32(2)
+
+	// decayLo is the min value for op2decay (in secs).
+	decayLo = float32(0.0001)
+
+	// decayHi is the max value for op2decay (in secs).
+	decayHi = float32(10)
 )
 
 // Common errors.
@@ -75,6 +80,8 @@ func (dx7 *DX7) Play(note *Note) error {
 		"op1gain":      float32(note.Velocity) / (maxMIDI * polyphony),
 		"op1amt":       dx7.ctrls["op1amt"],
 		"op2freqscale": dx7.ctrls["op2freqscale"],
+		"op2decay":     dx7.ctrls["op2decay"],
+		"op2sustain":   dx7.ctrls["op2sustain"],
 	}
 	synth, err := dx7.group.Synth(dx7.curVoice, sid, sc.AddToTail, controls)
 	if err != nil {
@@ -106,7 +113,8 @@ func (dx7 *DX7) Control(ctrl *Ctrl) error {
 	return nil
 }
 
-// setCtrls sets controller values.
+// setCtrls sets controller values and returns a bool
+// indicating whether any were changed.
 func (dx7 *DX7) setCtrls(ctrl *Ctrl) bool {
 	// TODO: allow configurable controller mappings
 	switch ctrl.Num {
@@ -114,18 +122,26 @@ func (dx7 *DX7) setCtrls(ctrl *Ctrl) bool {
 		return false
 	case 106: // op1 FM Amt
 		dx7.ctrls["op1amt"] = float32(ctrl.Value) * (fmtAmtHi / maxMIDI)
-		return true
 	case 107: // op2 Freq Scale
-		freqscale := getOp2FreqScale(ctrl.Value)
-		fmt.Printf("freqscale %f\n", freqscale)
-		dx7.ctrls["op2freqscale"] = freqscale
-		return true
+		dx7.ctrls["op2freqscale"] = getOp2FreqScale(ctrl.Value)
+	case 108:
+		dx7.ctrls["op2decay"] = linear(ctrl.Value, decayLo, decayHi)
+	case 109:
+		dx7.ctrls["op2sustain"] = float32(ctrl.Value) / maxMIDI
 	}
+	return true
 }
 
+// getOp2FreqScale returns a frequency scaling value for op2.
 func getOp2FreqScale(value int) float32 {
-	norm := float32(value) / maxMIDI
-	return float32(math.Pow(2, float64((norm*(freqScaleHi-freqScaleLo))+freqScaleLo)))
+	exp := float64(linear(value, freqScaleLo, freqScaleHi))
+	// return float32(math.Pow(2, float64((norm*(freqScaleHi-freqScaleLo))+freqScaleLo)))
+	return float32(math.Pow(2, exp))
+}
+
+func linear(val int, min, max float32) float32 {
+	norm := float32(val) / maxMIDI
+	return (norm * (max - min)) + min
 }
 
 // Listen listens for events (either MIDI or OSC).
@@ -178,6 +194,8 @@ func NewDX7(cfg *config) (*DX7, error) {
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
 			"op2freqscale": float32(1),
+			"op2decay":     float32(defaultDecay),
+			"op2sustain":   float32(defaultSustain),
 		},
 	}, nil
 }

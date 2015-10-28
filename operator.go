@@ -13,7 +13,7 @@ const (
 	defaultAttack  = 0.01
 	defaultDecay   = 0.3
 	defaultSustain = 0.5
-	defaultRelease = 1
+	defaultRelease = 0.1
 )
 
 // Operator is a sine wave signal combined with an envelope generator.
