@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -13,30 +14,38 @@ const (
 
 	// CCStatus is the status value of a MIDI CC message.
 	CCStatus = int64(176)
+
+	// maxMIDI is the max value of a MIDI CC or Note.
+	maxMIDI = float32(127)
+)
+
+// Common errors.
+var (
+	ErrNotNote = errors.New("portmidi event is not a note event")
+	ErrNotCtrl = errors.New("e is not a control change event")
 )
 
 // MIDINote creates a new MIDI note event.
 // It panics if the event status does not indicate a MIDI note.
-func MIDINote(e portmidi.Event) Note {
+func MIDINote(e portmidi.Event) (*Note, error) {
 	if e.Status != NoteStatus {
-		panic("e is not a note event")
+		return nil, ErrNotNote
 	}
-	return Note{int(e.Data1), int(e.Data2)}
+	return &Note{int(e.Data1), int(e.Data2)}, nil
 }
 
-// MIDICC create a new MIDI control change event.
+// MIDICtrl create a new MIDI control change event.
 // It panics if the event status does not indicate a control change.
-func MIDICC(e portmidi.Event) Ctrl {
+func MIDICtrl(e portmidi.Event) (*Ctrl, error) {
 	if e.Status != CCStatus {
-		panic("e is not a control change event")
+		return nil, ErrNotCtrl
 	}
-	return Ctrl{int(e.Data1), int(e.Data2)}
+	return &Ctrl{int(e.Data1), int(e.Data2)}, nil
 }
 
 // PrintMidiDevices prints a list of portmidi devices on stdout.
 func PrintMidiDevices(w io.Writer) {
 	midiDevices := portmidi.CountDevices()
-	// fmt.Printf("%d midi devices:\n", midiDevices)
 
 	fmt.Fprintln(w, "| ID | Interface |         Name         | Input | Output |")
 	fmt.Fprintln(w, "|----|-----------|----------------------|-------|--------|")
@@ -62,7 +71,19 @@ func MidiListen(midiDeviceID portmidi.DeviceId, handler EventHandler) error {
 	for event := range midiInput.Listen() {
 		switch event.Status {
 		case NoteStatus:
-			if err := handler.Play(MIDINote(event)); err != nil {
+			note, err := MIDINote(event)
+			if err != nil {
+				return err
+			}
+			if err := handler.Play(note); err != nil {
+				return err
+			}
+		case CCStatus:
+			ctrl, err := MIDICtrl(event)
+			if err != nil {
+				return err
+			}
+			if err := handler.Control(ctrl); err != nil {
 				return err
 			}
 		}

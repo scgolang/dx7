@@ -21,6 +21,9 @@ type Operator struct {
 	// Freq is the oscillator frequency.
 	Freq sc.Input
 
+	// FreqScale is a frequency scaling parameter.
+	FreqScale sc.Input
+
 	// FM is the frequency modulation input.
 	FM sc.Input
 
@@ -53,6 +56,9 @@ type Operator struct {
 func (op *Operator) defaults() {
 	if op.Freq == nil {
 		op.Freq = sc.C(defaultFreq)
+	}
+	if op.FreqScale == nil {
+		op.FreqScale = sc.C(1)
 	}
 	if op.Gain == nil {
 		op.Gain = sc.C(defaultGain)
@@ -96,8 +102,8 @@ func (op Operator) Rate(rate int8) sc.Input {
 		Done:       op.Done,
 	}.Rate(sc.AR)
 
-	// Modulate frequency with FM.
-	freq := op.Freq.Add(op.FM.Mul(op.Amt))
+	// Modulate carrier frequency with FM input.
+	freq := op.Freq.MulAdd(op.FreqScale, op.FM.Mul(op.Amt))
 
 	// Return the carrier.
 	return sc.SinOsc{Freq: freq}.Rate(sc.AR).Mul(env)
@@ -106,27 +112,19 @@ func (op Operator) Rate(rate int8) sc.Input {
 // NewOperator creates an operator with a specific index
 // and adds synth params to a synthdef.
 func NewOperator(i int, p sc.Params, gate, fm sc.Input) sc.Input {
-	var (
-		name    = "op" + strconv.Itoa(i)
-		freq    = p.Add(name+"freq", defaultFreq)
-		gain    = p.Add(name+"gain", defaultGain)
-		amt     = p.Add(name+"amt", defaultAmt)
-		attack  = p.Add(name+"attack", defaultAttack)
-		decay   = p.Add(name+"decay", defaultDecay)
-		sustain = p.Add(name+"sustain", defaultSustain)
-		release = p.Add(name+"release", defaultRelease)
-	)
+	name := "op" + strconv.Itoa(i)
 
 	return Operator{
-		Gate: gate,
-		Freq: freq,
-		Gain: gain,
-		FM:   fm,
-		Amt:  amt,
-		A:    attack,
-		D:    decay,
-		S:    sustain,
-		R:    release,
-		Done: sc.FreeEnclosing,
+		Gate:      gate,
+		Freq:      p.Add(name+"freq", defaultFreq),
+		FreqScale: p.Add(name+"freqscale", 1),
+		Gain:      p.Add(name+"gain", defaultGain),
+		FM:        fm,
+		Amt:       p.Add(name+"amt", defaultAmt),
+		A:         p.Add(name+"attack", defaultAttack),
+		D:         p.Add(name+"decay", defaultDecay),
+		S:         p.Add(name+"sustain", defaultSustain),
+		R:         p.Add(name+"release", defaultRelease),
+		Done:      sc.FreeEnclosing,
 	}.Rate(sc.AR)
 }

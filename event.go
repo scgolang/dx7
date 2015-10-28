@@ -2,8 +2,8 @@ package main
 
 // EventHandler
 type EventHandler interface {
-	Play(Note) error
-	Control(Ctrl) error
+	Play(*Note) error
+	Control(*Ctrl) error
 }
 
 // Note is a MIDI note event.
