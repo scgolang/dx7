@@ -7,6 +7,12 @@ import (
 	"github.com/rakyll/portmidi"
 )
 
+const (
+	defaultMidiDeviceId = 0
+	defaultLocalAddr    = "127.0.0.1:57110"
+	defaultScsynthAddr  = "127.0.0.1:57120"
+)
+
 // config encapsulates info parsed from the CLI
 type config struct {
 	midiDeviceID    portmidi.DeviceId

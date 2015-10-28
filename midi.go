@@ -17,6 +17,9 @@ const (
 
 	// maxMIDI is the max value of a MIDI CC or Note.
 	maxMIDI = float32(127)
+
+	// midiBufferSize hardcoded buffer size for MIDI data.
+	midiBufferSize = 1024
 )
 
 // Common errors.

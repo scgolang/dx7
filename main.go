@@ -16,13 +16,6 @@ import (
 	"github.com/rakyll/portmidi"
 )
 
-const (
-	defaultMidiDeviceId = 0
-	midiBufferSize      = 1024
-	defaultLocalAddr    = "127.0.0.1:57110"
-	defaultScsynthAddr  = "127.0.0.1:57120"
-)
-
 func main() {
 	// Initialize portmidi.
 	portmidi.Initialize()
