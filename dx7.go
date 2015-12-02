@@ -12,9 +12,6 @@ const (
 	// polyphony is used to scale the gain of each synth voice.
 	polyphony = 4
 
-	// numVoices is the number of possible voices.
-	numVoices = 127
-
 	// defName is the name of the synthdef.
 	defaultDefName = "defaultDX7voice"
 
@@ -46,7 +43,7 @@ type DX7 struct {
 	cfg      *config
 	client   *sc.Client
 	group    *sc.Group
-	voices   [numVoices]*sc.Synth
+	voices   [maxMIDI]*sc.Synth
 	curVoice string
 	ctrls    map[string]float32 // synth param values
 }
