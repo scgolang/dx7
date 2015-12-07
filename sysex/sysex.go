@@ -18,11 +18,11 @@ const (
 
 // Sysex defines a MIDI sysex message.
 type Sysex struct {
-	Substatus    int      `json:"substatus"`
-	Channel      int      `json:"channel"`
-	FormatNumber int      `json:"format_number"`
-	ByteCount    int16    `json:"byte_count"`
-	Data         BulkDump `json:"data"`
+	Substatus    int       `json:"substatus"`
+	Channel      int       `json:"channel"`
+	FormatNumber int       `json:"format_number"`
+	ByteCount    int16     `json:"byte_count"`
+	Data         *BulkDump `json:"data"`
 }
 
 // New parses a sysex message from an io.Reader.
