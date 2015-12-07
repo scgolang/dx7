@@ -7,27 +7,22 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"os"
-	"path"
 )
 
 const (
-	ManufacturerID = 0x43
-
-	headerLength = 6
+	yamahaManufacturerID = 0x43
+	headerLength         = 6
 )
 
 // Sysex defines a MIDI sysex message.
 type Sysex struct {
-	Substatus    int   `json:"substatus"`
-	Channel      int   `json:"channel"`
-	FormatNumber int   `json:"format_number"`
-	ByteCount    int16 `json:"byte_count"`
-	data         []byte
+	Substatus    int      `json:"substatus"`
+	Channel      int      `json:"channel"`
+	FormatNumber int      `json:"format_number"`
+	ByteCount    int16    `json:"byte_count"`
+	Data         BulkDump `json:"data"`
 }
 
 // New parses a sysex message from an io.Reader.
@@ -37,22 +32,33 @@ func New(r io.Reader) (*Sysex, error) {
 		return nil, err
 	}
 
-	if hdr[1] != ManufacturerID {
+	if hdr[1] != yamahaManufacturerID {
 		return nil, fmt.Errorf("Manufacturer is not Yamaha: %X", hdr[1])
 	}
 
-	syx := &Sysex{
-		Substatus:    getSubstatus(hdr[2]),
-		Channel:      getChannel(hdr[2]),
-		FormatNumber: midiMask(hdr[3]),
-		ByteCount:    getByteCount(hdr[4], hdr[5]),
-	}
+	var (
+		syx = &Sysex{
+			Substatus:    getSubstatus(hdr[2]),
+			Channel:      getChannel(hdr[2]),
+			FormatNumber: midiMask(hdr[3]),
+			ByteCount:    getByteCount(hdr[4], hdr[5]),
+		}
+		data = make([]byte, syx.ByteCount)
+	)
 
-	syx.data = make([]byte, syx.ByteCount)
-
-	if _, err := r.Read(syx.data); err != nil {
+	n, err := r.Read(data)
+	if err != nil {
 		return nil, err
 	}
+	if int16(n) != syx.ByteCount {
+		return nil, fmt.Errorf("only read %d data bytes", n)
+	}
+
+	bulkDump, err := NewBulkDump(data)
+	if err != nil {
+		return nil, err
+	}
+	syx.Data = bulkDump
 
 	return syx, nil
 }
@@ -77,34 +83,5 @@ func midiMask(b byte) int {
 
 // getByteCount gets the count of data bytes.
 func getByteCount(ms, ls byte) int16 {
-	return (int16(ms) << 8) + int16(ls)
-}
-
-func main() {
-	dir, err := os.Open("syx")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	files, err := dir.Readdir(0)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, file := range files {
-		r, err := os.Open(path.Join(dir.Name(), file.Name()))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		syx, err := New(r)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Printf(r.Name() + " ")
-		if err := json.NewEncoder(os.Stdout).Encode(syx); err != nil {
-			log.Fatal(err)
-		}
-	}
+	return (int16(ms) << 7) + int16(ls)
 }

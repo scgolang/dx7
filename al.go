@@ -16,5 +16,5 @@ var defaultAlgorithm = sc.NewSynthdef(defaultDefName, func(p sc.Params) sc.Ugen 
 	// output signal
 	sig := sc.Multi(op1, op1)
 
-	return sc.Out{bus, sig}.Rate(sc.AR)
+	return sc.Out{Bus: bus, Channels: sig}.Rate(sc.AR)
 })

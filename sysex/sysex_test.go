@@ -78,7 +78,7 @@ func TestByteCount(t *testing.T) {
 		LS  byte
 		Out int16
 	}{
-		{0x01, 0x00, int16(256)},
+		{0x01, 0x00, int16(128)},
 		// TODO: more test cases
 	} {
 		if expected, got := val.Out, getByteCount(val.MS, val.LS); expected != got {
