@@ -4,7 +4,7 @@
 // https://homepages.abdn.ac.uk/mth192/pages/html/dx7.html
 // as well as the folks at blitter.com
 // http://www.blitter.com/~russtopia/MIDI/~jglatt/tech/midispec/sysex.htm
-package main
+package sysex
 
 import (
 	"fmt"
