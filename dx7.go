@@ -2,8 +2,8 @@ package main
 
 import (
 	"errors"
-	"log"
 	"math"
+	"sync"
 
 	"github.com/scgolang/sc"
 )
@@ -12,7 +12,7 @@ const (
 	// polyphony is used to scale the gain of each synth voice.
 	polyphony = 4
 
-	// defName is the name of the synthdef.
+	// defaultDefName is the name of the synthdef.
 	defaultDefName = "defaultDX7voice"
 
 	// fmtAmtHi is the max value for op1amt.
@@ -40,12 +40,13 @@ var (
 
 // DX7 encapsulates the synth architecture of the legendary Yamaha DX7.
 type DX7 struct {
-	cfg      *config
-	client   *sc.Client
-	group    *sc.Group
-	voices   [maxMIDI]*sc.Synth
-	curVoice string
-	ctrls    map[string]float32 // synth param values
+	cfg         *config
+	client      *sc.Client
+	group       *sc.Group
+	voices      [maxMIDI]*sc.Synth
+	voicesMutex *sync.Mutex
+	curVoice    string
+	ctrls       map[string]float32 // synth param values
 }
 
 // Play plays a note. This can either turn a voice on or
@@ -55,6 +56,8 @@ func (dx7 *DX7) Play(note *Note) error {
 		return ErrNilNote
 	}
 
+	dx7.voicesMutex.Lock()
+	defer dx7.voicesMutex.Unlock()
 	if note.Velocity == 0 {
 		if dx7.voices[note.Note] != nil {
 			// set gate to 0
@@ -98,7 +101,9 @@ func (dx7 *DX7) Control(ctrl *Ctrl) error {
 		return nil
 	}
 
-	// TODO: get rid of data race
+	dx7.voicesMutex.Lock()
+	defer dx7.voicesMutex.Unlock()
+
 	for _, voice := range dx7.voices {
 		if voice != nil {
 			if err := voice.Set(dx7.ctrls); err != nil {
@@ -160,26 +165,31 @@ func (dx7 *DX7) Listen() error {
 // nodes will be added to the provided group.
 func NewDX7(cfg *config) (*DX7, error) {
 	// Initialize a new supercollider client.
-	client := sc.NewClient(cfg.localAddr)
-	if err := client.Connect(cfg.scsynthAddr); err != nil {
-		log.Fatal(err)
+	client, err := sc.NewClient("udp", cfg.localAddr, cfg.scsynthAddr)
+	if err != nil {
+		return nil, err
 	}
 
 	// Tell scsynth to dump all the midi messages it receives.
 	if cfg.dumpOSC {
 		if err := client.DumpOSC(sc.DumpAll); err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
 	// Add the default group.
 	defaultGroup, err := client.AddDefaultGroup()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Send a synthdef.
-	if err := client.SendDef(defaultAlgorithm); err != nil {
+	var algorithm int
+	if cfg.algorithm == -1 {
+		algorithm = 1
+	}
+	def := loadAlgo(algorithm)
+	if err := client.SendDef(def); err != nil {
 		return nil, err
 	}
 

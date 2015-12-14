@@ -21,6 +21,8 @@ type config struct {
 	eventsAddr      string
 	listMidiDevices bool
 	dumpOSC         bool
+	dumpSysex       string // path to a sysex file that we JSON-encode to stdout
+	algorithm       int
 }
 
 // parseConfig parses a config from the CLI.
@@ -36,6 +38,8 @@ func parseConfig() *config {
 	fs.StringVar(&cfg.eventsAddr, "events", "", "events OSC address")
 	fs.BoolVar(&cfg.listMidiDevices, "listmidi", false, "list MIDI devices")
 	fs.BoolVar(&cfg.dumpOSC, "dumposc", false, "have scsynth dump OSC messages on stdout")
+	fs.StringVar(&cfg.dumpSysex, "dumpsysex", "", "JSON-encode a sysex file to stdout")
+	fs.IntVar(&cfg.algorithm, "algorithm", -1, "DX7 algorithm")
 	fs.Parse(os.Args[1:])
 	cfg.midiDeviceID = portmidi.DeviceId(midiDeviceId)
 	return &cfg
