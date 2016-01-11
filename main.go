@@ -10,16 +10,9 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"os"
 
 	"github.com/rakyll/portmidi"
-	"github.com/scgolang/dx7/sysex"
-)
-
-const (
-	ExitSuccess = 0
 )
 
 func main() {
@@ -27,48 +20,13 @@ func main() {
 	portmidi.Initialize()
 	defer portmidi.Terminate()
 
-	cfg := parseConfig()
-
-	// Print a list of midi devices and exit.
-	if cfg.listMidiDevices {
-		PrintMidiDevices(os.Stdout)
-		os.Exit(ExitSuccess)
-	}
-
-	// Dump sysex data to stdout.
-	if cfg.dumpSysex != "" {
-		if err := dumpSysex(cfg.dumpSysex); err != nil {
-			log.Fatal(err)
-		}
-		os.Exit(ExitSuccess)
-	}
-
 	// Initialize a new dx7.
-	dx7, err := NewDX7(cfg)
+	dx7, err := NewDX7(getConfig())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := dx7.Listen(); err != nil {
+	if err := dx7.Run(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-// dumpSysex prints a JSON-encoded sysex structure to stdout.
-func dumpSysex(sysexPath string) error {
-	sysexFile, err := os.Open(sysexPath)
-	if err != nil {
-		return err
-	}
-
-	syx, err := sysex.New(sysexFile)
-	if err != nil {
-		return err
-	}
-
-	if err := json.NewEncoder(os.Stdout).Encode(syx); err != nil {
-		return err
-	}
-
-	return nil
 }

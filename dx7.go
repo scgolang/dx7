@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"math"
+	"os"
 	"sync"
 
 	"github.com/scgolang/sc"
@@ -11,9 +12,6 @@ import (
 const (
 	// polyphony is used to scale the gain of each synth voice.
 	polyphony = 4
-
-	// defaultDefName is the name of the synthdef.
-	defaultDefName = "defaultDX7voice"
 
 	// fmtAmtHi is the max value for op1amt.
 	fmtAmtHi = float32(2000)
@@ -45,8 +43,40 @@ type DX7 struct {
 	group       *sc.Group
 	voices      [maxMIDI]*sc.Synth
 	voicesMutex *sync.Mutex
-	curVoice    string
+	currentDef  string
+	presets     map[string]string  // maps preset names to their synthdef names
 	ctrls       map[string]float32 // synth param values
+}
+
+// Connect to scsynth and load synthdefs.
+func (dx7 *DX7) Connect() error {
+	// Initialize a new supercollider client.
+	client, err := sc.NewClient("udp", dx7.cfg.localAddr, dx7.cfg.scsynthAddr)
+	if err != nil {
+		return err
+	}
+	dx7.client = client
+
+	// Tell scsynth to dump all the midi messages it receives.
+	if dx7.cfg.dumpOSC {
+		if err := client.DumpOSC(sc.DumpAll); err != nil {
+			return err
+		}
+	}
+
+	// Add the default group.
+	defaultGroup, err := client.AddDefaultGroup()
+	if err != nil {
+		return err
+	}
+	dx7.group = defaultGroup
+	return nil
+}
+
+// LoadPreset loads a preset.
+func (dx7 *DX7) LoadPreset(name string) error {
+	dx7.currentDef = dx7.presets[name]
+	return nil
 }
 
 // Play plays a note. This can either turn a voice on or
@@ -83,7 +113,7 @@ func (dx7 *DX7) Play(note *Note) error {
 		"op2decay":     dx7.ctrls["op2decay"],
 		"op2sustain":   dx7.ctrls["op2sustain"],
 	}
-	synth, err := dx7.group.Synth(dx7.curVoice, sid, sc.AddToTail, controls)
+	synth, err := dx7.group.Synth(dx7.currentDef, sid, sc.AddToTail, controls)
 	if err != nil {
 		return err
 	}
@@ -146,8 +176,8 @@ func linear(val int, min, max float32) float32 {
 	return (norm * (max - min)) + min
 }
 
-// Listen listens for events (either MIDI or OSC).
-func (dx7 *DX7) Listen() error {
+// Run listens for events (either MIDI or OSC).
+func (dx7 *DX7) Run() error {
 	// Listen for MIDI or OSC events, depending on
 	// whether an events address was specified.
 	if dx7.cfg.eventsAddr == "" {
@@ -164,45 +194,31 @@ func (dx7 *DX7) Listen() error {
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
 func NewDX7(cfg *config) (*DX7, error) {
-	// Initialize a new supercollider client.
-	client, err := sc.NewClient("udp", cfg.localAddr, cfg.scsynthAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// Tell scsynth to dump all the midi messages it receives.
-	if cfg.dumpOSC {
-		if err := client.DumpOSC(sc.DumpAll); err != nil {
-			return nil, err
-		}
-	}
-
-	// Add the default group.
-	defaultGroup, err := client.AddDefaultGroup()
-	if err != nil {
-		return nil, err
-	}
-
-	// Send a synthdef.
-	var algorithm int
-	if cfg.algorithm == -1 {
-		algorithm = 1
-	}
-	def := loadAlgo(algorithm)
-	if err := client.SendDef(def); err != nil {
-		return nil, err
-	}
-
-	return &DX7{
-		cfg:      cfg,
-		client:   client,
-		group:    defaultGroup,
-		curVoice: defaultDefName,
+	dx7 := &DX7{
+		cfg: cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
 			"op2freqscale": float32(1),
 			"op2decay":     float32(defaultDecay),
 			"op2sustain":   float32(defaultSustain),
 		},
-	}, nil
+	}
+
+	// Print a list of midi devices and exit.
+	if cfg.listMidiDevices {
+		PrintMidiDevices(os.Stdout)
+		return nil, nil
+	}
+
+	// Read all the sysex files.
+	if err := dx7.LoadPresets(cfg); err != nil {
+		return nil, err
+	}
+
+	// Dump sysex data to stdout.
+	if cfg.dumpSysex {
+		return nil, nil
+	}
+
+	return dx7, nil
 }
