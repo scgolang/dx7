@@ -1,29 +1,29 @@
 package main
 
 import (
-	"log"
+	"encoding/json"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/scgolang/dx7/sysex"
 )
 
+const syxExtension = ".syx"
+
 // LoadPresets reads all the sysex files in a directory
 // and returns a list of Sysex structs.
-func (dx7 *DX7) LoadPresets(cfg *config) error {
-	loadPreset := func(path string, info os.FileInfo, err error) error {
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		if _, err := sysex.New(f); err != nil {
-			return err
-		}
-		log.Printf("path %s\n", path)
-		return nil
+func (dx7 *DX7) LoadPreset(name string) error {
+	// Read the sysex and load the appropriate synthdef.
+	f, err := os.Open(path.Join(dx7.cfg.assetsDir, "syx", name+syxExtension))
+	if err != nil {
+		return err
 	}
-	return filepath.Walk(path.Join(cfg.assetsDir, "syx"), loadPreset)
+	syx, err := sysex.New(f)
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(os.Stdout).Encode(syx)
+	// return nil
 }
 
 // sendSynthdefs transforms a sysex preset into a synthdef.

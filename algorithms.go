@@ -39,6 +39,18 @@ var algorithms = map[string]sc.UgenFunc{
 		sig = sc.Multi(sig, sig)
 		return sc.Out{Bus: bus, Channels: sig}.Rate(sc.AR)
 	},
+	"dx7_algo23": func(p sc.Params) sc.Ugen {
+		gate, bus := p.Add("gate", 1), sc.C(0)
+		op6 := NewOperator(6, p, gate, nil)
+		op5 := NewOperator(5, p, gate, op6)
+		op4 := NewOperator(4, p, gate, op6)
+		op3 := NewOperator(3, p, gate, nil)
+		op2 := NewOperator(2, p, gate, op3)
+		op1 := NewOperator(1, p, gate, nil)
+		sig := sc.Mix(sc.AR, []sc.Input{op1, op2, op4, op5})
+		sig = sc.Multi(sig, sig)
+		return sc.Out{Bus: bus, Channels: sig}.Rate(sc.AR)
+	},
 }
 
 func init() {

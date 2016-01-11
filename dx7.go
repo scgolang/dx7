@@ -73,12 +73,6 @@ func (dx7 *DX7) Connect() error {
 	return nil
 }
 
-// LoadPreset loads a preset.
-func (dx7 *DX7) LoadPreset(name string) error {
-	dx7.currentDef = dx7.presets[name]
-	return nil
-}
-
 // Play plays a note. This can either turn a voice on or
 // off depending on if velocity is > 0.
 func (dx7 *DX7) Play(note *Note) error {
@@ -211,8 +205,10 @@ func NewDX7(cfg *config) (*DX7, error) {
 	}
 
 	// Read all the sysex files.
-	if err := dx7.LoadPresets(cfg); err != nil {
-		return nil, err
+	if cfg.preset != "" {
+		if err := dx7.LoadPreset(cfg.preset); err != nil {
+			return nil, err
+		}
 	}
 
 	// Dump sysex data to stdout.
