@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path"
 
@@ -22,8 +21,8 @@ func (dx7 *DX7) LoadPreset(name string) error {
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(os.Stdout).Encode(syx)
-	// return nil
+	dx7.currentPreset = syx
+	return nil
 }
 
 // sendSynthdefs transforms a sysex preset into a synthdef.

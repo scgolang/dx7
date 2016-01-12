@@ -21,7 +21,7 @@ func main() {
 	defer portmidi.Terminate()
 
 	// Initialize a new dx7.
-	dx7, err := NewDX7(getConfig())
+	dx7, err := New(getConfig())
 	if err != nil {
 		log.Fatal(err)
 	}

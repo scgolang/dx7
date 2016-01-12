@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"math"
 	"os"
 	"sync"
 
+	"github.com/scgolang/dx7/sysex"
 	"github.com/scgolang/sc"
 )
 
@@ -38,14 +40,15 @@ var (
 
 // DX7 encapsulates the synth architecture of the legendary Yamaha DX7.
 type DX7 struct {
-	cfg         *config
-	client      *sc.Client
-	group       *sc.Group
-	voices      [maxMIDI]*sc.Synth
-	voicesMutex *sync.Mutex
-	currentDef  string
-	presets     map[string]string  // maps preset names to their synthdef names
-	ctrls       map[string]float32 // synth param values
+	cfg           *config
+	client        *sc.Client
+	group         *sc.Group
+	voices        [maxMIDI]*sc.Synth
+	voicesMutex   *sync.Mutex
+	currentDef    string
+	currentPreset *sysex.Sysex       // remove this
+	presets       map[string]string  // maps preset names to their synthdef names
+	ctrls         map[string]float32 // synth param values
 }
 
 // Connect to scsynth and load synthdefs.
@@ -172,6 +175,24 @@ func linear(val int, min, max float32) float32 {
 
 // Run listens for events (either MIDI or OSC).
 func (dx7 *DX7) Run() error {
+	// Print a list of midi devices and exit.
+	if dx7.cfg.listMidiDevices {
+		PrintMidiDevices(os.Stdout)
+		return nil
+	}
+
+	// Read all the sysex files.
+	if dx7.cfg.preset != "" {
+		if err := dx7.LoadPreset(dx7.cfg.preset); err != nil {
+			return err
+		}
+	}
+
+	// Dump sysex data to stdout.
+	if dx7.cfg.dumpSysex {
+		return json.NewEncoder(os.Stdout).Encode(dx7.currentPreset)
+	}
+
 	// Listen for MIDI or OSC events, depending on
 	// whether an events address was specified.
 	if dx7.cfg.eventsAddr == "" {
@@ -184,11 +205,11 @@ func (dx7 *DX7) Run() error {
 	return nil
 }
 
-// NewDX7 returns a DX7 using the defaultAlgorithm.
+// New returns a DX7 using the defaultAlgorithm.
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
-func NewDX7(cfg *config) (*DX7, error) {
-	dx7 := &DX7{
+func New(cfg *config) (*DX7, error) {
+	return &DX7{
 		cfg: cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
@@ -196,25 +217,5 @@ func NewDX7(cfg *config) (*DX7, error) {
 			"op2decay":     float32(defaultDecay),
 			"op2sustain":   float32(defaultSustain),
 		},
-	}
-
-	// Print a list of midi devices and exit.
-	if cfg.listMidiDevices {
-		PrintMidiDevices(os.Stdout)
-		return nil, nil
-	}
-
-	// Read all the sysex files.
-	if cfg.preset != "" {
-		if err := dx7.LoadPreset(cfg.preset); err != nil {
-			return nil, err
-		}
-	}
-
-	// Dump sysex data to stdout.
-	if cfg.dumpSysex {
-		return nil, nil
-	}
-
-	return dx7, nil
+	}, nil
 }
