@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/rakyll/portmidi"
 )
@@ -73,36 +74,50 @@ func PrintMidiDevices(w io.Writer) {
 }
 
 // MidiListen listens for MIDI events and handles them with
-// a MIDIHandler.
-func MidiListen(midiDeviceID int, handler EventHandler) error {
-	midiInput, err := portmidi.NewInputStream(portmidi.DeviceId(midiDeviceID), midiBufferSize)
-	if midiInput != nil {
-		defer midiInput.Close()
-	}
-	if err != nil {
-		return err
-	}
+// a MIDIHandler. This function blocks.
+func MidiListen(midiDeviceID int, handler EventHandler) chan error {
+	var (
+		errch = make(chan error)
+		did   = portmidi.DeviceId(midiDeviceID)
+	)
+	go func() {
+		midiInput, err := portmidi.NewInputStream(did, midiBufferSize)
+		if midiInput != nil {
+			defer midiInput.Close()
+		}
+		if err != nil {
+			errch <- err
+			return
+		}
 
-	for event := range midiInput.Listen() {
-		switch event.Status {
-		case NoteStatus:
-			note, err := MIDINote(event)
-			if err != nil {
-				return err
-			}
-			if err := handler.Play(note); err != nil {
-				return err
-			}
-		case CCStatus:
-			ctrl, err := MIDICtrl(event)
-			if err != nil {
-				return err
-			}
-			if err := handler.Control(ctrl); err != nil {
-				return err
+		log.Printf("listening for midi events on device %d\n", did)
+
+		for event := range midiInput.Listen() {
+			switch event.Status {
+			case NoteStatus:
+				note, err := MIDINote(event)
+				log.Printf("note event %s\n", note)
+				if err != nil {
+					errch <- err
+					return
+				}
+				if err := handler.Play(note); err != nil {
+					errch <- err
+					return
+				}
+			case CCStatus:
+				ctrl, err := MIDICtrl(event)
+				if err != nil {
+					errch <- err
+					return
+				}
+				if err := handler.Control(ctrl); err != nil {
+					errch <- err
+					return
+				}
 			}
 		}
-	}
+	}()
 
-	return nil
+	return errch
 }

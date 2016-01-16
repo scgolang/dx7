@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"math"
 	"os"
 	"sync"
@@ -195,14 +196,16 @@ func (dx7 *DX7) Run() error {
 
 	// Listen for MIDI or OSC events, depending on
 	// whether an events address was specified.
-	if dx7.cfg.eventsAddr == "" {
-		if err := MidiListen(dx7.cfg.midiDeviceID, dx7); err != nil {
-			return err
-		}
-	} else {
-		// Listen for OSC events.
+	log.Println("listening for MIDI")
+	errch := MidiListen(dx7.cfg.midiDeviceID, dx7)
+
+	log.Println("connecting to SuperCollider")
+	if err := dx7.Connect(); err != nil {
+		log.Fatal(err)
 	}
-	return nil
+	log.Println("connected to SuperCollider")
+
+	return <-errch
 }
 
 // New returns a DX7 using the defaultAlgorithm.
@@ -210,7 +213,8 @@ func (dx7 *DX7) Run() error {
 // nodes will be added to the provided group.
 func New(cfg *config) (*DX7, error) {
 	return &DX7{
-		cfg: cfg,
+		voicesMutex: &sync.Mutex{},
+		cfg:         cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
 			"op2freqscale": float32(1),

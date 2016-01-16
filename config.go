@@ -21,7 +21,6 @@ type config struct {
 	midiDeviceID    int
 	localAddr       string
 	scsynthAddr     string
-	eventsAddr      string
 	assetsDir       string
 	preset          string
 	dumpSysex       bool
@@ -39,7 +38,6 @@ func getConfig() *config {
 	fs.IntVar(&cfg.midiDeviceID, "midi", defaultMidiDeviceId, "MIDI Device ID")
 	fs.StringVar(&cfg.localAddr, "local", defaultLocalAddr, "local OSC address")
 	fs.StringVar(&cfg.scsynthAddr, "scsynth", defaultScsynthAddr, "scsynth OSC address")
-	fs.StringVar(&cfg.eventsAddr, "events", "", "events OSC address")
 	fs.BoolVar(&cfg.listMidiDevices, "listmidi", false, "list MIDI devices")
 	fs.BoolVar(&cfg.dumpOSC, "dumposc", false, "have scsynth dump OSC messages on stdout")
 	fs.StringVar(&cfg.assetsDir, "assets-dir", path.Join(srcPath, "assets"), "path to assets directory")
