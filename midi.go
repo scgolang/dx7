@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/rakyll/portmidi"
+	"github.com/scgolang/portmidi"
 )
 
 const (
@@ -21,6 +21,10 @@ const (
 
 	// midiBufferSize hardcoded buffer size for MIDI data.
 	midiBufferSize = 1024
+
+	// readMax is the maximum number of MIDI messages to read
+	// at a single time.
+	readMax = 1024
 )
 
 // Common errors.
@@ -92,26 +96,9 @@ func MidiListen(midiDeviceID int, handler EventHandler) chan error {
 
 		log.Printf("listening for midi events on device %d\n", did)
 
-		for event := range midiInput.Listen() {
-			switch event.Status {
-			case NoteStatus:
-				note, err := MIDINote(event)
-				log.Printf("note event %s\n", note)
-				if err != nil {
-					errch <- err
-					return
-				}
-				if err := handler.Play(note); err != nil {
-					errch <- err
-					return
-				}
-			case CCStatus:
-				ctrl, err := MIDICtrl(event)
-				if err != nil {
-					errch <- err
-					return
-				}
-				if err := handler.Control(ctrl); err != nil {
+		for events, err := midiInput.Read(1024); err == nil; events, err = midiInput.Read(1024) {
+			for _, event := range events {
+				if err := HandleMIDIEvent(event, handler); err != nil {
 					errch <- err
 					return
 				}
@@ -120,4 +107,27 @@ func MidiListen(midiDeviceID int, handler EventHandler) chan error {
 	}()
 
 	return errch
+}
+
+// HandleMIDIEvent handles a MIDI event with the provided handler.
+func HandleMIDIEvent(event portmidi.Event, handler EventHandler) error {
+	switch event.Status {
+	case NoteStatus:
+		note, err := MIDINote(event)
+		if err != nil {
+			return err
+		}
+		if err := handler.Play(note); err != nil {
+			return err
+		}
+	case CCStatus:
+		ctrl, err := MIDICtrl(event)
+		if err != nil {
+			return err
+		}
+		if err := handler.Control(ctrl); err != nil {
+			return err
+		}
+	}
+	return nil
 }
