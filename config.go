@@ -4,8 +4,6 @@ import (
 	"flag"
 	"os"
 	"path"
-
-	"github.com/rakyll/portmidi"
 )
 
 const (
@@ -20,7 +18,7 @@ var (
 
 // config encapsulates info parsed from the CLI
 type config struct {
-	midiDeviceID    portmidi.DeviceId
+	midiDeviceID    int
 	localAddr       string
 	scsynthAddr     string
 	eventsAddr      string
@@ -35,11 +33,10 @@ type config struct {
 // getConfig gets a config from the CLI.
 func getConfig() *config {
 	var (
-		cfg          = config{}
-		fs           = flag.NewFlagSet("", flag.ExitOnError)
-		midiDeviceId int
+		cfg = config{}
+		fs  = flag.NewFlagSet("", flag.ExitOnError)
 	)
-	fs.IntVar(&midiDeviceId, "midi", defaultMidiDeviceId, "MIDI Device ID")
+	fs.IntVar(&cfg.midiDeviceID, "midi", defaultMidiDeviceId, "MIDI Device ID")
 	fs.StringVar(&cfg.localAddr, "local", defaultLocalAddr, "local OSC address")
 	fs.StringVar(&cfg.scsynthAddr, "scsynth", defaultScsynthAddr, "scsynth OSC address")
 	fs.StringVar(&cfg.eventsAddr, "events", "", "events OSC address")
@@ -50,6 +47,5 @@ func getConfig() *config {
 	fs.BoolVar(&cfg.dumpSysex, "dump-sysex", false, "print JSON-encoded presets to stdout ")
 	fs.IntVar(&cfg.algorithm, "algorithm", -1, "DX7 algorithm")
 	fs.Parse(os.Args[1:])
-	cfg.midiDeviceID = portmidi.DeviceId(midiDeviceId)
 	return &cfg
 }

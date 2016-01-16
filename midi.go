@@ -28,6 +28,18 @@ var (
 	ErrNotCtrl = errors.New("e is not a control change event")
 )
 
+// InitializeMIDI initializes the MIDI system.
+func InitializeMIDI() error {
+	portmidi.Initialize()
+	return nil
+}
+
+// TerminateMIDI terminates the MIDI system.
+func TerminateMIDI() error {
+	portmidi.Terminate()
+	return nil
+}
+
 // MIDINote creates a new MIDI note event.
 // It panics if the event status does not indicate a MIDI note.
 func MIDINote(e portmidi.Event) (*Note, error) {
@@ -62,8 +74,8 @@ func PrintMidiDevices(w io.Writer) {
 
 // MidiListen listens for MIDI events and handles them with
 // a MIDIHandler.
-func MidiListen(midiDeviceID portmidi.DeviceId, handler EventHandler) error {
-	midiInput, err := portmidi.NewInputStream(midiDeviceID, midiBufferSize)
+func MidiListen(midiDeviceID int, handler EventHandler) error {
+	midiInput, err := portmidi.NewInputStream(portmidi.DeviceId(midiDeviceID), midiBufferSize)
 	if midiInput != nil {
 		defer midiInput.Close()
 	}

@@ -9,16 +9,11 @@
 // into algorithms of your own design.
 package main
 
-import (
-	"log"
-
-	"github.com/rakyll/portmidi"
-)
+import "log"
 
 func main() {
-	// Initialize portmidi.
-	portmidi.Initialize()
-	defer portmidi.Terminate()
+	InitializeMIDI()
+	defer TerminateMIDI()
 
 	// Initialize a new dx7.
 	dx7, err := New(getConfig())
