@@ -41,8 +41,18 @@ type DX7 struct {
 	ctrls map[string]float32
 }
 
+// SendSynthdefs sends all the synthdefs needed for the DX7.
+func (dx7 *DX7) SendSynthdefs() error {
+	for algo, f := range algorithms {
+		if err := dx7.Client.SendDef(sc.NewSynthdef(algo, f)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // FromNote provides params for a new synth voice.
-func (dx7 *DX7) FromNote(note poly.Note) map[string]float32 {
+func (dx7 *DX7) FromNote(note *poly.Note) map[string]float32 {
 	return map[string]float32{
 		"gate":         float32(1),
 		"op1freq":      sc.Midicps(note.Note),
@@ -108,6 +118,10 @@ func (dx7 *DX7) Run() error {
 		return err
 	}
 
+	if err := dx7.SendSynthdefs(); err != nil {
+		return err
+	}
+
 	// Listen for MIDI events.
 	return dx7.MidiListen(dx7.cfg.midiDeviceID)
 }
@@ -116,7 +130,7 @@ func (dx7 *DX7) Run() error {
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
 func New(cfg *config) (*DX7, error) {
-	return &DX7{
+	dx7 := &DX7{
 		cfg: cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
@@ -124,5 +138,11 @@ func New(cfg *config) (*DX7, error) {
 			"op2decay":     float32(defaultDecay),
 			"op2sustain":   float32(defaultSustain),
 		},
-	}, nil
+	}
+	if p, err := poly.New(dx7); err != nil {
+		return nil, err
+	} else {
+		dx7.Poly = p
+	}
+	return dx7, nil
 }

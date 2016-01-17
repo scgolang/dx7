@@ -25,6 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Run the dx7.
 	if err := dx7.Run(); err != nil {
 		log.Fatal(err)
 	}
