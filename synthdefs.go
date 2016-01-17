@@ -1,6 +1,10 @@
 package main
 
-import "github.com/scgolang/sc"
+import (
+	"fmt"
+
+	"github.com/scgolang/sc"
+)
 
 var synthdefs = map[string]sc.UgenFunc{
 	"dx7_algo1": func(p sc.Params) sc.Ugen {
@@ -59,4 +63,28 @@ var synthdefAliases = map[string]string{
 	"dx7_algo2": "dx7_algo1",
 	"dx7_algo4": "dx7_algo3",
 	"dx7_algo6": "dx7_algo5",
+}
+
+// getDefName gets a synthdef name from an algorithm number.
+func getDefName(algo int8) string {
+	def := fmt.Sprintf("dx7_algo%d", algo)
+	if _, ok := synthdefs[def]; ok {
+		return def
+	}
+	if alias, ok := synthdefAliases[def]; ok {
+		return alias
+	}
+	panic(fmt.Sprintf("No synthdef for algorithm %d", algo))
+}
+
+// SendSynthdefs sends all the synthdefs needed for the DX7.
+func (dx7 *DX7) SendSynthdefs() error {
+	logger.Println("sending synthdefs")
+	for def, f := range synthdefs {
+		if err := dx7.Client.SendDef(sc.NewSynthdef(def, f)); err != nil {
+			return err
+		}
+		logger.Printf("sent synthdef %s\n", def)
+	}
+	return nil
 }

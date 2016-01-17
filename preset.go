@@ -7,13 +7,15 @@ import (
 	"github.com/scgolang/dx7/sysex"
 )
 
-const syxExtension = ".syx"
+const syxExt = ".syx"
 
 // LoadPresets reads all the sysex files in a directory
 // and returns a list of Sysex structs.
 func (dx7 *DX7) LoadPreset(name string) error {
+	logger.Printf("loading preset %s\n", name)
+
 	// Read the sysex and load the appropriate synthdef.
-	f, err := os.Open(path.Join(dx7.cfg.assetsDir, "syx", name+syxExtension))
+	f, err := os.Open(path.Join(dx7.cfg.assetsDir, "syx", name+syxExt))
 	if err != nil {
 		return err
 	}
@@ -22,14 +24,7 @@ func (dx7 *DX7) LoadPreset(name string) error {
 		return err
 	}
 	dx7.currentPreset = syx
-	return nil
-}
-
-// sendSynthdefs transforms a sysex preset into a synthdef.
-// operators are wired up in the returned synthdef according
-// to one of the 32 DX7 "algorithms".
-// for a depiction of the dx7 algorithms, see
-// http://www.polynominal.com/site/studio/gear/synth/yamaha-tx802/tx802-board2.jpg
-func (dx7 *DX7) sendSynthdefs() error {
+	dx7.Poly.Def = getDefName(syx.Data.Algorithm)
+	logger.Printf("set current synthef to %s\n", dx7.Poly.Def)
 	return nil
 }

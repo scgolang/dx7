@@ -10,6 +10,7 @@ const (
 	defaultMidiDeviceId = 0
 	defaultLocalAddr    = "127.0.0.1:57110"
 	defaultScsynthAddr  = "127.0.0.1:57120"
+	defaultPreset       = "organ1"
 )
 
 var (
@@ -41,7 +42,7 @@ func getConfig() *config {
 	fs.BoolVar(&cfg.listMidiDevices, "listmidi", false, "list MIDI devices")
 	fs.BoolVar(&cfg.dumpOSC, "dumposc", false, "have scsynth dump OSC messages on stdout")
 	fs.StringVar(&cfg.assetsDir, "assets-dir", path.Join(srcPath, "assets"), "path to assets directory")
-	fs.StringVar(&cfg.preset, "preset", "", "initial preset")
+	fs.StringVar(&cfg.preset, "preset", defaultPreset, "initial preset")
 	fs.BoolVar(&cfg.dumpSysex, "dump-sysex", false, "print JSON-encoded presets to stdout ")
 	fs.IntVar(&cfg.algorithm, "algorithm", -1, "DX7 algorithm")
 	fs.Parse(os.Args[1:])

@@ -11,11 +11,16 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/scgolang/poly"
 )
 
+var logger *log.Logger
+
 func main() {
+	logger = log.New(os.Stdout, "[dx7] ", log.Lshortfile)
+
 	poly.InitializeMIDI()
 	defer poly.TerminateMIDI()
 
