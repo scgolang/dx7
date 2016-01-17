@@ -1,23 +1,57 @@
 package main
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/scgolang/poly"
 	"github.com/scgolang/sc"
 )
 
-// FromNote provides params for a new synth voice.
+const (
+	// polyphony is used to scale the gain of each synth voice.
+	polyphony = 4
+
+	// fmtAmtHi is the max value for op1amt.
+	fmtAmtHi = float32(2000)
+
+	// freqScaleLo is the min value for op2freqscale (as a power of 2).
+	freqScaleLo = float32(-8)
+
+	// freqScaleHi is the max value for op2freqscale (as a power of 2).
+	freqScaleHi = float32(2)
+
+	// decayLo is the min value for op2decay (in secs).
+	decayLo = float32(0.0001)
+
+	// decayHi is the max value for op2decay (in secs).
+	decayHi = float32(10)
+)
+
+var (
+	ops = []int{1, 2, 3, 4, 5, 6}
+)
+
+func ctrlName(op int, name string) string {
+	return fmt.Sprintf("op%d%s", op, name)
+}
+
+// FromNote implements poly.Controller.
 func (dx7 *DX7) FromNote(note *poly.Note) map[string]float32 {
-	return map[string]float32{
-		"gate":         float32(1),
-		"op1freq":      sc.Midicps(note.Note),
-		"op1gain":      float32(note.Velocity) / (poly.MaxMIDI * polyphony),
-		"op1amt":       dx7.ctrls["op1amt"],
-		"op2freqscale": dx7.ctrls["op2freqscale"],
-		"op2decay":     dx7.ctrls["op2decay"],
-		"op2sustain":   dx7.ctrls["op2sustain"],
+	ctrls := map[string]float32{"gate": float32(1)}
+
+	// 	"op1amt":       dx7.ctrls["op1amt"],
+	// 	"op2freqscale": dx7.ctrls["op2freqscale"],
+	// 	"op2decay":     dx7.ctrls["op2decay"],
+	// 	"op2sustain":   dx7.ctrls["op2sustain"],
+	// }
+
+	for op := range ops {
+		ctrls[ctrlName(op, "freq")] = sc.Midicps(note.Note)
+		ctrls[ctrlName(op, "gain")] = float32(note.Velocity) / (poly.MaxMIDI * polyphony)
 	}
+
+	return ctrls
 }
 
 // FromCtrl returns params for a MIDI CC event.

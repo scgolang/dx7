@@ -9,8 +9,7 @@ import (
 
 const syxExt = ".syx"
 
-// LoadPresets reads all the sysex files in a directory
-// and returns a list of Sysex structs.
+// LoadPreset reads a sysex file and sets the current synthdef.
 func (dx7 *DX7) LoadPreset(name string) error {
 	logger.Printf("loading preset %s\n", name)
 

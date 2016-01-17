@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	defaultMidiDeviceId = 0
+	defaultMidiDeviceID = 0
 	defaultLocalAddr    = "127.0.0.1:57110"
 	defaultScsynthAddr  = "127.0.0.1:57120"
 	defaultPreset       = "organ1"
@@ -36,7 +36,7 @@ func getConfig() *config {
 		cfg = config{}
 		fs  = flag.NewFlagSet("", flag.ExitOnError)
 	)
-	fs.IntVar(&cfg.midiDeviceID, "midi", defaultMidiDeviceId, "MIDI Device ID")
+	fs.IntVar(&cfg.midiDeviceID, "midi", defaultMidiDeviceID, "MIDI Device ID")
 	fs.StringVar(&cfg.localAddr, "local", defaultLocalAddr, "local OSC address")
 	fs.StringVar(&cfg.scsynthAddr, "scsynth", defaultScsynthAddr, "scsynth OSC address")
 	fs.BoolVar(&cfg.listMidiDevices, "listmidi", false, "list MIDI devices")

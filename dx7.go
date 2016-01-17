@@ -8,33 +8,12 @@ import (
 	"github.com/scgolang/poly"
 )
 
-const (
-	// polyphony is used to scale the gain of each synth voice.
-	polyphony = 4
-
-	// fmtAmtHi is the max value for op1amt.
-	fmtAmtHi = float32(2000)
-
-	// freqScaleLo is the min value for op2freqscale (as a power of 2).
-	freqScaleLo = float32(-8)
-
-	// freqScaleHi is the max value for op2freqscale (as a power of 2).
-	freqScaleHi = float32(2)
-
-	// decayLo is the min value for op2decay (in secs).
-	decayLo = float32(0.0001)
-
-	// decayHi is the max value for op2decay (in secs).
-	decayHi = float32(10)
-)
-
-// DX7 encapsulates the synth architecture of the legendary Yamaha DX7.
+// DX7 is a recreation of the legendary Yamaha DX7.
 type DX7 struct {
 	*poly.Poly
 
 	cfg           *config
-	currentPreset *sysex.Sysex      // remove this
-	presets       map[string]string // maps preset names to their synthdef names
+	currentPreset *sysex.Sysex
 
 	ctrls map[string]float32
 }
@@ -84,10 +63,10 @@ func New(cfg *config) (*DX7, error) {
 			"op2sustain":   float32(defaultSustain),
 		},
 	}
-	if p, err := poly.New(dx7); err != nil {
+	p, err := poly.New(dx7)
+	if err != nil {
 		return nil, err
-	} else {
-		dx7.Poly = p
 	}
+	dx7.Poly = p
 	return dx7, nil
 }
