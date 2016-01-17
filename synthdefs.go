@@ -2,7 +2,7 @@ package main
 
 import "github.com/scgolang/sc"
 
-var algorithms = map[string]sc.UgenFunc{
+var synthdefs = map[string]sc.UgenFunc{
 	"dx7_algo1": func(p sc.Params) sc.Ugen {
 		gate, bus := p.Add("gate", 1), sc.C(0)
 		op6 := NewOperator(6, p, gate, nil)
@@ -53,10 +53,10 @@ var algorithms = map[string]sc.UgenFunc{
 	},
 }
 
-func init() {
-	// We don't have feedback yet, so alias algorithms with
-	// feedback to their no-feedback versions.
-	algorithms["dx7_algo2"] = algorithms["dx7_algo1"]
-	algorithms["dx7_algo4"] = algorithms["dx7_algo3"]
-	algorithms["dx7_algo6"] = algorithms["dx7_algo5"]
+// We don't have feedback yet, so alias algorithms with
+// feedback to their no-feedback versions.
+var synthdefAliases = map[string]string{
+	"dx7_algo2": "dx7_algo1",
+	"dx7_algo4": "dx7_algo3",
+	"dx7_algo6": "dx7_algo5",
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"math"
 	"os"
 
@@ -43,10 +44,12 @@ type DX7 struct {
 
 // SendSynthdefs sends all the synthdefs needed for the DX7.
 func (dx7 *DX7) SendSynthdefs() error {
-	for algo, f := range algorithms {
-		if err := dx7.Client.SendDef(sc.NewSynthdef(algo, f)); err != nil {
+	logger.Println("sending synthdefs")
+	for def, f := range synthdefs {
+		if err := dx7.Client.SendDef(sc.NewSynthdef(def, f)); err != nil {
 			return err
 		}
+		logger.Printf("sent synthdef %s\n", def)
 	}
 	return nil
 }
@@ -145,4 +148,10 @@ func New(cfg *config) (*DX7, error) {
 		dx7.Poly = p
 	}
 	return dx7, nil
+}
+
+var logger *log.Logger
+
+func init() {
+	logger = log.New(os.Stdout, "[dx7] ", log.Lshortfile)
 }
