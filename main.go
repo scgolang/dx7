@@ -9,11 +9,15 @@
 // into algorithms of your own design.
 package main
 
-import "log"
+import (
+	"log"
+
+	"github.com/scgolang/poly"
+)
 
 func main() {
-	InitializeMIDI()
-	defer TerminateMIDI()
+	poly.InitializeMIDI()
+	defer poly.TerminateMIDI()
 
 	// Initialize a new dx7.
 	dx7, err := New(getConfig())

@@ -2,13 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"log"
 	"math"
 	"os"
-	"sync"
 
 	"github.com/scgolang/dx7/sysex"
+	"github.com/scgolang/poly"
 	"github.com/scgolang/sc"
 )
 
@@ -32,134 +30,45 @@ const (
 	decayHi = float32(10)
 )
 
-// Common errors.
-var (
-	ErrNilNote       = errors.New("nil note")
-	ErrNilCtrl       = errors.New("nil ctrl")
-	ErrMissingNoteOn = errors.New("received a note off for a voice that is not on")
-)
-
 // DX7 encapsulates the synth architecture of the legendary Yamaha DX7.
 type DX7 struct {
+	*poly.Poly
+
 	cfg           *config
-	client        *sc.Client
-	group         *sc.Group
-	voices        [maxMIDI]*sc.Synth
-	voicesMutex   *sync.Mutex
-	currentDef    string
-	currentPreset *sysex.Sysex       // remove this
-	presets       map[string]string  // maps preset names to their synthdef names
-	ctrls         map[string]float32 // synth param values
+	currentPreset *sysex.Sysex      // remove this
+	presets       map[string]string // maps preset names to their synthdef names
+
+	ctrls map[string]float32
 }
 
-// Connect to scsynth and load synthdefs.
-func (dx7 *DX7) Connect() error {
-	// Initialize a new supercollider client.
-	client, err := sc.NewClient("udp", dx7.cfg.localAddr, dx7.cfg.scsynthAddr)
-	if err != nil {
-		return err
-	}
-	dx7.client = client
-
-	// Tell scsynth to dump all the midi messages it receives.
-	if dx7.cfg.dumpOSC {
-		if err := client.DumpOSC(sc.DumpAll); err != nil {
-			return err
-		}
-	}
-
-	// Add the default group.
-	defaultGroup, err := client.AddDefaultGroup()
-	if err != nil {
-		return err
-	}
-	dx7.group = defaultGroup
-	return nil
-}
-
-// Play plays a note. This can either turn a voice on or
-// off depending on if velocity is > 0.
-func (dx7 *DX7) Play(note *Note) error {
-	if note == nil {
-		return ErrNilNote
-	}
-
-	dx7.voicesMutex.Lock()
-	defer dx7.voicesMutex.Unlock()
-	if note.Velocity == 0 {
-		if dx7.voices[note.Note] != nil {
-			// set gate to 0
-			ctls := map[string]float32{"gate": float32(0)}
-			if err := dx7.voices[note.Note].Set(ctls); err != nil {
-				return err
-			}
-		} else {
-			// received note off for a voice that is not on
-			return ErrMissingNoteOn
-		}
-		// set voice to nil so we don't send any more messages to it
-		dx7.voices[note.Note] = nil
-		return nil
-	}
-	sid := dx7.client.NextSynthID()
-	controls := map[string]float32{
+// FromNote provides params for a new synth voice.
+func (dx7 *DX7) FromNote(note poly.Note) map[string]float32 {
+	return map[string]float32{
 		"gate":         float32(1),
 		"op1freq":      sc.Midicps(note.Note),
-		"op1gain":      float32(note.Velocity) / (maxMIDI * polyphony),
+		"op1gain":      float32(note.Velocity) / (poly.MaxMIDI * polyphony),
 		"op1amt":       dx7.ctrls["op1amt"],
 		"op2freqscale": dx7.ctrls["op2freqscale"],
 		"op2decay":     dx7.ctrls["op2decay"],
 		"op2sustain":   dx7.ctrls["op2sustain"],
 	}
-	synth, err := dx7.group.Synth(dx7.currentDef, sid, sc.AddToTail, controls)
-	if err != nil {
-		return err
-	}
-	dx7.voices[note.Note] = synth
-	return nil
 }
 
-// Control provides control over the DX7 using control messages.
-func (dx7 *DX7) Control(ctrl *Ctrl) error {
-	if ctrl == nil {
-		return ErrNilCtrl
-	}
-
-	if changed := dx7.setCtrls(ctrl); !changed {
-		return nil
-	}
-
-	dx7.voicesMutex.Lock()
-	defer dx7.voicesMutex.Unlock()
-
-	for _, voice := range dx7.voices {
-		if voice != nil {
-			if err := voice.Set(dx7.ctrls); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// setCtrls sets controller values and returns a bool
-// indicating whether any were changed.
-func (dx7 *DX7) setCtrls(ctrl *Ctrl) bool {
-	// TODO: allow configurable controller mappings
+// FromCtrl returns params for a MIDI CC event.
+func (dx7 *DX7) FromCtrl(ctrl *poly.Ctrl) map[string]float32 {
 	switch ctrl.Num {
 	default:
-		return false
+		return nil
 	case 106: // op1 FM Amt
-		dx7.ctrls["op1amt"] = float32(ctrl.Value) * (fmtAmtHi / maxMIDI)
+		dx7.ctrls["op1amt"] = float32(ctrl.Value) * (fmtAmtHi / poly.MaxMIDI)
 	case 107: // op2 Freq Scale
 		dx7.ctrls["op2freqscale"] = getOp2FreqScale(ctrl.Value)
 	case 108:
 		dx7.ctrls["op2decay"] = linear(ctrl.Value, decayLo, decayHi)
 	case 109:
-		dx7.ctrls["op2sustain"] = float32(ctrl.Value) / maxMIDI
+		dx7.ctrls["op2sustain"] = float32(ctrl.Value) / poly.MaxMIDI
 	}
-	return true
+	return dx7.ctrls
 }
 
 // getOp2FreqScale returns a frequency scaling value for op2.
@@ -170,7 +79,7 @@ func getOp2FreqScale(value int) float32 {
 }
 
 func linear(val int, min, max float32) float32 {
-	norm := float32(val) / maxMIDI
+	norm := float32(val) / poly.MaxMIDI
 	return (norm * (max - min)) + min
 }
 
@@ -178,7 +87,7 @@ func linear(val int, min, max float32) float32 {
 func (dx7 *DX7) Run() error {
 	// Print a list of midi devices and exit.
 	if dx7.cfg.listMidiDevices {
-		PrintMidiDevices(os.Stdout)
+		poly.PrintMidiDevices(os.Stdout)
 		return nil
 	}
 
@@ -194,18 +103,13 @@ func (dx7 *DX7) Run() error {
 		return json.NewEncoder(os.Stdout).Encode(dx7.currentPreset)
 	}
 
-	// Listen for MIDI or OSC events, depending on
-	// whether an events address was specified.
-	log.Println("listening for MIDI")
-	errch := MidiListen(dx7.cfg.midiDeviceID, dx7)
-
-	log.Println("connecting to SuperCollider")
-	if err := dx7.Connect(); err != nil {
-		log.Fatal(err)
+	// Connect to scsynth.
+	if err := dx7.Connect(dx7.cfg.localAddr, dx7.cfg.scsynthAddr); err != nil {
+		return err
 	}
-	log.Println("connected to SuperCollider")
 
-	return <-errch
+	// Listen for MIDI events.
+	return dx7.MidiListen(dx7.cfg.midiDeviceID)
 }
 
 // New returns a DX7 using the defaultAlgorithm.
@@ -213,8 +117,7 @@ func (dx7 *DX7) Run() error {
 // nodes will be added to the provided group.
 func New(cfg *config) (*DX7, error) {
 	return &DX7{
-		voicesMutex: &sync.Mutex{},
-		cfg:         cfg,
+		cfg: cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
 			"op2freqscale": float32(1),
