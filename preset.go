@@ -14,7 +14,7 @@ func (dx7 *DX7) LoadPreset(name string) error {
 	logger.Printf("loading preset %s\n", name)
 
 	// Read the sysex and load the appropriate synthdef.
-	f, err := os.Open(path.Join(dx7.cfg.assetsDir, "syx", name+syxExt))
+	f, err := os.Open(path.Join(dx7.assetsDir, "syx", name+syxExt))
 	if err != nil {
 		return err
 	}

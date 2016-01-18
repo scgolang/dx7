@@ -3,9 +3,15 @@ package main
 import (
 	"encoding/json"
 	"os"
+	"path"
 
 	"github.com/scgolang/dx7/sysex"
 	"github.com/scgolang/poly"
+)
+
+var (
+	srcPath       = path.Join(os.Getenv("GOPATH"), "src", "github.com", "scgolang", "dx7")
+	defaultPreset = "organ1"
 )
 
 type Empty struct {
@@ -15,32 +21,31 @@ type Empty struct {
 type DX7 struct {
 	*poly.Poly
 
-	cfg           *config
+	// config
+	assetsDir string
+	preset    string
+	dumpSysex bool
+	algorithm int
+
 	currentPreset *sysex.Sysex
 
 	ctrls map[string]float32
 }
 
-// Run listens for events (either MIDI or OSC).
-func (dx7 *DX7) Run() error {
-	// Print a list of midi devices and exit.
-	if dx7.cfg.listMidiDevices {
-		poly.PrintMidiDevices(os.Stdout)
-		return nil
-	}
-
+// run the dx7.
+func (dx7 *DX7) run() error {
 	// Load the current preset.
-	if err := dx7.LoadPreset(dx7.cfg.preset); err != nil {
+	if err := dx7.LoadPreset(dx7.preset); err != nil {
 		return err
 	}
 
 	// Dump sysex data to stdout for the current preset and return.
-	if dx7.cfg.dumpSysex {
+	if dx7.dumpSysex {
 		return json.NewEncoder(os.Stdout).Encode(dx7.currentPreset)
 	}
 
 	// Connect to scsynth.
-	if err := dx7.Connect(dx7.cfg.localAddr, dx7.cfg.scsynthAddr); err != nil {
+	if err := dx7.Connect(poly.Nothing{}, &poly.Nothing{}); err != nil {
 		return err
 	}
 
@@ -49,26 +54,15 @@ func (dx7 *DX7) Run() error {
 		return err
 	}
 
-	// Serve the DX7 over rpc.
-	if dx7.cfg.rpc != "" {
-		return ServeRPC(dx7, dx7.cfg.rpc)
-	}
-
-	// Listen for MIDI events.
-	return dx7.MidiListen(dx7.cfg.midiDeviceID)
-}
-
-// Play plays a note.
-func (dx7 *DX7) Play(note *poly.Note, empty *Empty) error {
-	return dx7.Poly.Play(note)
+	// Listen for events.
+	return poly.Listen(dx7.Poly)
 }
 
 // New returns a DX7 using the defaultAlgorithm.
 // client will be used to create synth nodes, and all the synth
 // nodes will be added to the provided group.
-func New(cfg *config) (*DX7, error) {
+func New() (*DX7, error) {
 	dx7 := &DX7{
-		cfg: cfg,
 		ctrls: map[string]float32{
 			"op1amt":       float32(defaultAmt),
 			"op2freqscale": float32(1),
@@ -80,6 +74,15 @@ func New(cfg *config) (*DX7, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	p.FlagSet.StringVar(&dx7.assetsDir, "assets", path.Join(srcPath, "assets"), "path to assets directory")
+	p.FlagSet.StringVar(&dx7.preset, "preset", defaultPreset, "initial preset")
+	p.FlagSet.BoolVar(&dx7.dumpSysex, "dump-sysex", false, "print JSON-encoded presets to stdout ")
+	p.FlagSet.IntVar(&dx7.algorithm, "algorithm", -1, "DX7 algorithm")
+
+	p.FlagSet.Parse(os.Args[1:])
+
 	dx7.Poly = p
+
 	return dx7, nil
 }

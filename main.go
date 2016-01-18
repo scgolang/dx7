@@ -12,8 +12,6 @@ package main
 import (
 	"log"
 	"os"
-
-	"github.com/scgolang/poly"
 )
 
 var logger *log.Logger
@@ -21,17 +19,14 @@ var logger *log.Logger
 func main() {
 	logger = log.New(os.Stdout, "[dx7] ", log.Lshortfile)
 
-	poly.InitializeMIDI()
-	defer poly.TerminateMIDI()
-
 	// Initialize a new dx7.
-	dx7, err := New(getConfig())
+	dx7, err := New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Run the dx7.
-	if err := dx7.Run(); err != nil {
+	if err := dx7.run(); err != nil {
 		log.Fatal(err)
 	}
 }
