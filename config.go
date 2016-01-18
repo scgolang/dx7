@@ -28,6 +28,7 @@ type config struct {
 	listMidiDevices bool
 	dumpOSC         bool
 	algorithm       int
+	rpc             string // rpc listen address
 }
 
 // getConfig gets a config from the CLI.
@@ -45,6 +46,7 @@ func getConfig() *config {
 	fs.StringVar(&cfg.preset, "preset", defaultPreset, "initial preset")
 	fs.BoolVar(&cfg.dumpSysex, "dump-sysex", false, "print JSON-encoded presets to stdout ")
 	fs.IntVar(&cfg.algorithm, "algorithm", -1, "DX7 algorithm")
+	fs.StringVar(&cfg.rpc, "rpc", "", "rpc listen address")
 	fs.Parse(os.Args[1:])
 	return &cfg
 }

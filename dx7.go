@@ -8,6 +8,9 @@ import (
 	"github.com/scgolang/poly"
 )
 
+type Empty struct {
+}
+
 // DX7 is a recreation of the legendary Yamaha DX7.
 type DX7 struct {
 	*poly.Poly
@@ -46,8 +49,18 @@ func (dx7 *DX7) Run() error {
 		return err
 	}
 
+	// Serve the DX7 over rpc.
+	if dx7.cfg.rpc != "" {
+		return ServeRPC(dx7, dx7.cfg.rpc)
+	}
+
 	// Listen for MIDI events.
 	return dx7.MidiListen(dx7.cfg.midiDeviceID)
+}
+
+// Play plays a note.
+func (dx7 *DX7) Play(note *poly.Note, empty *Empty) error {
+	return dx7.Poly.Play(note)
 }
 
 // New returns a DX7 using the defaultAlgorithm.
