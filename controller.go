@@ -38,23 +38,25 @@ func ctrlName(op int, name string) string {
 
 // FromNote implements poly.Controller.
 func (dx7 *DX7) FromNote(note *poly.Note) map[string]float32 {
-	ctrls := map[string]float32{"gate": float32(1)}
-
-	// 	"op1amt":       dx7.ctrls["op1amt"],
-	// 	"op2freqscale": dx7.ctrls["op2freqscale"],
-	// 	"op2decay":     dx7.ctrls["op2decay"],
-	// 	"op2sustain":   dx7.ctrls["op2sustain"],
-	// }
+	var (
+		ctrls = map[string]float32{"gate": float32(1)}
+		freq  = sc.Midicps(note.Note)
+		gain  = float32(note.Velocity) / (poly.MaxMIDI * polyphony)
+	)
 
 	for op := range ops {
-		ctrls[ctrlName(op, "freq")] = sc.Midicps(note.Note)
-		ctrls[ctrlName(op, "gain")] = float32(note.Velocity) / (poly.MaxMIDI * polyphony)
+		ctrls[ctrlName(op, "freq")] = freq
+		ctrls[ctrlName(op, "gain")] = gain
+		ctrls[ctrlName(op, "amt")] = dx7.ctrls["op1amt"]
+		ctrls[ctrlName(op, "freqscale")] = dx7.ctrls["op2freqscale"]
+		ctrls[ctrlName(op, "decay")] = dx7.ctrls["op2decay"]
+		ctrls[ctrlName(op, "sustain")] = dx7.ctrls["op2sustain"]
 	}
 
 	return ctrls
 }
 
-// FromCtrl returns params for a MIDI CC event.
+// FromCtrl implements poly.Controller.
 func (dx7 *DX7) FromCtrl(ctrl *poly.Ctrl) map[string]float32 {
 	switch ctrl.Num {
 	default:
