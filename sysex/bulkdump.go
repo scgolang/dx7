@@ -17,7 +17,7 @@ var (
 // BulkDump contains 155 parameters for a DX7 voice.
 type BulkDump struct {
 	// Ops is the list of operators that define the voice.
-	Ops []*Op `json:"ops" xml:"ops"`
+	Ops []*Op `json:"ops" xml:"ops>op"`
 
 	// PitchEG is the pitch envelope generator.
 	PitchEG EG `json:"pitch_eg" xml:"pitch_eg"`
