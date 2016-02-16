@@ -2,19 +2,14 @@ package main
 
 import (
 	"os"
-	"path"
 
 	"github.com/scgolang/dx7/sysex"
 )
 
-const syxExt = ".syx"
-
 // LoadPreset reads a sysex file and sets the current synthdef.
 func (dx7 *DX7) LoadPreset(name string) error {
-	logger.Printf("loading preset %s\n", name)
-
 	// Read the sysex and load the appropriate synthdef.
-	f, err := os.Open(path.Join(dx7.assetsDir, "syx", name+syxExt))
+	f, err := os.Open(name)
 	if err != nil {
 		return err
 	}

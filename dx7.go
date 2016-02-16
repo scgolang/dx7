@@ -1,17 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
-	"path"
 
 	"github.com/scgolang/dx7/sysex"
 	"github.com/scgolang/poly"
-)
-
-var (
-	srcPath       = path.Join(os.Getenv("GOPATH"), "src", "github.com", "scgolang", "dx7")
-	defaultPreset = "organ1"
 )
 
 // DX7 is a recreation of the legendary Yamaha DX7.
@@ -19,9 +12,7 @@ type DX7 struct {
 	*poly.Poly
 
 	// config
-	assetsDir string
 	preset    string
-	dumpSysex bool
 	algorithm int
 
 	currentPreset *sysex.Sysex
@@ -31,14 +22,11 @@ type DX7 struct {
 
 // run the dx7.
 func (dx7 *DX7) run() error {
-	// Load the current preset.
-	if err := dx7.LoadPreset(dx7.preset); err != nil {
-		return err
-	}
-
-	// Dump sysex data to stdout for the current preset and return.
-	if dx7.dumpSysex {
-		return json.NewEncoder(os.Stdout).Encode(dx7.currentPreset)
+	// Load a preset.
+	if dx7.preset != "" {
+		if err := dx7.LoadPreset(dx7.preset); err != nil {
+			return err
+		}
 	}
 
 	// Connect to scsynth.
@@ -72,9 +60,7 @@ func New() (*DX7, error) {
 		return nil, err
 	}
 
-	p.FlagSet.StringVar(&dx7.assetsDir, "assets", path.Join(srcPath, "assets"), "path to assets directory")
-	p.FlagSet.StringVar(&dx7.preset, "preset", defaultPreset, "initial preset")
-	p.FlagSet.BoolVar(&dx7.dumpSysex, "dump-sysex", false, "print JSON-encoded presets to stdout ")
+	p.FlagSet.StringVar(&dx7.preset, "preset", "", "initial preset")
 	p.FlagSet.IntVar(&dx7.algorithm, "algorithm", -1, "DX7 algorithm")
 
 	p.FlagSet.Parse(os.Args[1:])
