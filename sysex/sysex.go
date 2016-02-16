@@ -7,6 +7,7 @@
 package sysex
 
 import (
+	"encoding/xml"
 	"fmt"
 	"io"
 )
@@ -18,11 +19,12 @@ const (
 
 // Sysex defines a MIDI sysex message.
 type Sysex struct {
-	Substatus    int       `json:"substatus"`
-	Channel      int       `json:"channel"`
-	FormatNumber int       `json:"format_number"`
-	ByteCount    int16     `json:"byte_count"`
-	Data         *BulkDump `json:"data"`
+	XMLName      xml.Name  `xml:"sysex"`
+	Substatus    int       `json:"substatus"          xml:"substatus,attr"`
+	Channel      int       `json:"channel"            xml:"channel,attr"`
+	FormatNumber int       `json:"format_number"      xml:"format_number,attr"`
+	ByteCount    int16     `json:"byte_count"         xml:"byte_count,attr"`
+	Data         *BulkDump `json:"data"               xml:"data"`
 }
 
 // New parses a sysex message from an io.Reader.

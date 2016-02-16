@@ -17,31 +17,31 @@ var (
 // BulkDump contains 155 parameters for a DX7 voice.
 type BulkDump struct {
 	// Ops is the list of operators that define the voice.
-	Ops []*Op `json:"ops"`
+	Ops []*Op `json:"ops" xml:"ops"`
 
 	// PitchEG is the pitch envelope generator.
-	PitchEG EG `json:"pitch_eg"`
+	PitchEG EG `json:"pitch_eg" xml:"pitch_eg"`
 
 	// Algorithm determines the modulation routing for
 	// the 6 operators.
-	Algorithm int8 `json:"algorithm"`
+	Algorithm int8 `json:"algorithm" xml:"algorithm,attr""`
 
 	// OscKeySync
-	OscKeySync int8 `json:"osc_key_sync"`
+	OscKeySync int8 `json:"osc_key_sync" xml:"osc_key_sync,attr"`
 
 	// Feedback adjusts the amount of feedback for
 	// algorithms that use feedback.
-	Feedback int8 `json:"feedback"`
+	Feedback int8 `json:"feedback" xml:"feedback,attr"`
 
 	// LFO controls the the low frequency oscillator.
-	LFO LFO `json:"lfo"`
+	LFO LFO `json:"lfo" xml:"lfo"`
 
 	// Transpose transposes a particular voice up or down
 	// on the keyboard.
-	Transpose int8 `json:"transpose"`
+	Transpose int8 `json:"transpose" xml:"transpose,attr"`
 
 	// Name is the voice's name.
-	Name string `json:"name"`
+	Name string `json:"name" xml:"name,attr"`
 }
 
 // NewBulkDump creates a new BulkDump from a byte slice.
@@ -72,31 +72,31 @@ func NewBulkDump(data []byte) (*BulkDump, error) {
 // Op contains all the parameters for a single operator.
 type Op struct {
 	// AmpEG is the amplitude envelope generator.
-	AmpEG EG `json:"amp"`
+	AmpEG EG `json:"amp" xml:"amp"`
 
 	// KbdLevelScaling provides a way to scale the output
 	// level depending on what key is pressed.
-	KbdLevelScaling KbdLevelScaling `json:"kbd_level_scaling"`
+	KbdLevelScaling KbdLevelScaling `json:"kbd_level_scaling" xml:"kbd_level_scaling"`
 
 	// KbdRateScaling provides a way to shorten the
 	// rates of the amplitude envelope generators as higher
 	// notes are played.
-	KbdRateScaling int8 `json:"kbd_rate_scaling"`
+	KbdRateScaling int8 `json:"kbd_rate_scaling" xml:"kbd_rate_scaling,attr"`
 
 	// OutputLevel controls the output level of the operator.
-	OutputLevel int8 `json:"output_level"`
+	OutputLevel int8 `json:"output_level" xml:"output_level,attr"`
 
 	// KdbVelocitySensitivity controls how sensitive an operator
 	// is to velocity (how much affect velocity will have on
 	// the output level of the operator).
-	KbdVelocitySensitivity int8 `json:"kbd_velocity_sensitivity"`
+	KbdVelocitySensitivity int8 `json:"kbd_velocity_sensitivity" xml:"kbd_velocity_sensitivity,attr"`
 
 	// AmpModSensitivity not really sure what this does (briansorahan).
-	AmpModSensitivity int8 `json:"amp_mod_sensitivity"`
+	AmpModSensitivity int8 `json:"amp_mod_sensitivity" xml:"amp_mod_sensitivity,attr"`
 
 	// Oscillator corresponds to the oscillator section on
 	// the DX7.
-	Oscillator Oscillator `json:"oscillator"`
+	Oscillator Oscillator `json:"oscillator" xml:"oscillator"`
 }
 
 // NewOp creates a new Op from a byte slice.
@@ -122,19 +122,19 @@ func NewOp(data []byte) *Op {
 type Oscillator struct {
 	// Mode controls whether or not the keyboard maps to
 	// oscillator frequency (0=tracking, 1=fixed).
-	Mode int8 `json:"mode"`
+	Mode int8 `json:"mode" xml:"mode,attr"`
 
 	// FreqCoarse is a coarse adjustment of frequency.
 	// In tracking mode 0 corresponds to a frequency ratio of 0.5x
 	// and 99 corresponds to 31x.
 	// In fixed mode 0 corresponds to 1Hz and 99 to 1000Hz.
-	FreqCoarse int8 `json:"freq_coarse"`
+	FreqCoarse int8 `json:"freq_coarse" xml:"freq_coarse,attr"`
 
 	// FreqFine is a fine adjustment of frequency.
-	FreqFine int8 `json:"freq_fine"`
+	FreqFine int8 `json:"freq_fine" xml:"freq_fine,attr"`
 
 	// Detune offers a frequency adjustment which is finer than FreqFine.
-	Detune int8 `json:"detune"`
+	Detune int8 `json:"detune" xml:"detune,attr"`
 }
 
 // KbdLevelScaling contains all the keyboard level scaling parameters
@@ -150,27 +150,27 @@ type KbdLevelScaling struct {
 	// 0 corresponds to 1 1/3 octaves below the lowest note on
 	// the keyboard (A-1), and 99 corresponds to 2 octaves above
 	// the highest note on the keybard.
-	Breakpoint int8 `json:"breakpoint"`
+	Breakpoint int8 `json:"breakpoint" xml:"breakpoint,attr"`
 
 	// Ldepth controls the curve depth on the left side of
 	// the breakpoint.
-	Ldepth int8 `json:"ldepth"`
+	Ldepth int8 `json:"ldepth" xml:"ldepth,attr"`
 
 	// Rdepth controls the curve depth on the right side of
 	// the breakpoint.
-	Rdepth int8 `json:"rdepth"`
+	Rdepth int8 `json:"rdepth" xml:"rdepth,attr"`
 
 	// Lcurve controls the curve on the left side of the
 	// breakpoint. The curve can have 4 different shapes:
 	// negative linear, negative exponential, positive
 	// exponential, and positive linear.
-	Lcurve int8 `json:"lcurve"`
+	Lcurve int8 `json:"lcurve" xml:"lcurve,attr"`
 
 	// Rcurve controls the curve on the right side of the
 	// breakpoint. The curve can have 4 different shapes:
 	// negative linear, negative exponential, positive
 	// exponential, and positive linear.
-	Rcurve int8 `json:"rcurve"`
+	Rcurve int8 `json:"rcurve" xml:"rcurve,attr"`
 }
 
 // NewKbdLevelScaling creates a new KbdLevelScaling from a byte slice.
@@ -209,14 +209,14 @@ func getKbdVelSens(b byte) int8 {
 // EG contains all the parameters of an envelope generator for
 // a DX7 voice.
 type EG struct {
-	L1 int8 `json:"l1"`
-	L2 int8 `json:"l2"`
-	L3 int8 `json:"l3"`
-	L4 int8 `json:"l4"`
-	R1 int8 `json:"r1"`
-	R2 int8 `json:"r2"`
-	R3 int8 `json:"r3"`
-	R4 int8 `json:"r4"`
+	L1 int8 `json:"l1" xml:"l1,attr"`
+	L2 int8 `json:"l2" xml:"l2,attr"`
+	L3 int8 `json:"l3" xml:"l3,attr"`
+	L4 int8 `json:"l4" xml:"l4,attr"`
+	R1 int8 `json:"r1" xml:"r1,attr"`
+	R2 int8 `json:"r2" xml:"r2,attr"`
+	R3 int8 `json:"r3" xml:"r3,attr"`
+	R4 int8 `json:"r4" xml:"r4,attr"`
 }
 
 // NewEG creates a new EG from a byte slice.
@@ -237,26 +237,26 @@ func NewEG(data []byte) EG {
 // LFO contains the parameters for a DX7 LFO.
 type LFO struct {
 	// Speed adjusts LFO speed (0 is slowest, 99 is fastest)
-	Speed int8 `json:"speed"`
+	Speed int8 `json:"speed" xml:"speed,attr"`
 
 	// Delay between when a key is pressed and modulation kicks in
-	Delay int8 `json:"delay"`
+	Delay int8 `json:"delay" xml:"delay,attr"`
 
 	// PMD is Pitch Modulation Depth
-	PMD int8 `json:"pmd"`
+	PMD int8 `json:"pmd" xml:"pmd,attr"`
 
 	// AMD is Amplitude Modulation Depth
-	AMD int8 `json:"amd"`
+	AMD int8 `json:"amd" xml:"amd,attr"`
 
 	// PMSensitivity adjusts the sensitivity of individual
 	// voices to LFO modulation
-	PMSensitivity int8 `json:"pm_sensitivity"`
+	PMSensitivity int8 `json:"pm_sensitivity" xml:"pm_sensitivity,attr"`
 
 	// Wave 0=triangle, 1=sawdown, 2=sawup, 3=square, 4=sine, 5=s+h
-	Wave int8 `json:"wave"`
+	Wave int8 `json:"wave" xml:"wave,attr"`
 
 	// Sync causes the LFO to restart every time a key is pressed
-	Sync int8 `json:"sync"`
+	Sync int8 `json:"sync" xml:"sync,attr"`
 }
 
 // NewLFO creates a new LFO from a byte slice.
