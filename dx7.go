@@ -14,9 +14,6 @@ var (
 	defaultPreset = "organ1"
 )
 
-type Empty struct {
-}
-
 // DX7 is a recreation of the legendary Yamaha DX7.
 type DX7 struct {
 	*poly.Poly
@@ -45,7 +42,7 @@ func (dx7 *DX7) run() error {
 	}
 
 	// Connect to scsynth.
-	if err := dx7.Connect(poly.Nothing{}, &poly.Nothing{}); err != nil {
+	if err := dx7.Connect(); err != nil {
 		return err
 	}
 
