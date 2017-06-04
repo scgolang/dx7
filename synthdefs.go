@@ -81,7 +81,7 @@ func getDefName(algo int8) string {
 func (dx7 *DX7) SendSynthdefs() error {
 	logger.Println("sending synthdefs")
 	for def, f := range synthdefs {
-		if err := dx7.Client.SendDef(sc.NewSynthdef(def, f)); err != nil {
+		if err := dx7.client.SendDef(sc.NewSynthdef(def, f)); err != nil {
 			return err
 		}
 		logger.Printf("sent synthdef %s\n", def)

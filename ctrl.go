@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/scgolang/poly"
+	"github.com/scgolang/midi"
 	"github.com/scgolang/sc"
 )
 
@@ -37,13 +37,12 @@ func ctrlName(op int, name string) string {
 }
 
 // FromNote implements poly.Controller.
-func (dx7 *DX7) FromNote(note *poly.Note) map[string]float32 {
+func (dx7 *DX7) FromNote(note midi.Note) map[string]float32 {
 	var (
 		ctrls = map[string]float32{"gate": float32(1)}
-		freq  = sc.Midicps(note.Note)
-		gain  = float32(note.Velocity) / (poly.MaxMIDI * polyphony)
+		freq  = sc.Midicps(float32(note.Number))
+		gain  = float32(note.Velocity) / (127 * polyphony)
 	)
-
 	for op := range ops {
 		ctrls[ctrlName(op, "freq")] = freq
 		ctrls[ctrlName(op, "gain")] = gain
@@ -52,23 +51,22 @@ func (dx7 *DX7) FromNote(note *poly.Note) map[string]float32 {
 		ctrls[ctrlName(op, "decay")] = dx7.ctrls["op2decay"]
 		ctrls[ctrlName(op, "sustain")] = dx7.ctrls["op2sustain"]
 	}
-
 	return ctrls
 }
 
 // FromCtrl implements poly.Controller.
-func (dx7 *DX7) FromCtrl(ctrl *poly.Ctrl) map[string]float32 {
-	switch ctrl.Num {
+func (dx7 *DX7) FromCtrl(ctrl midi.CC) map[string]float32 {
+	switch ctrl.Number {
 	default:
 		return nil
 	case 106: // op1 FM Amt
-		dx7.ctrls["op1amt"] = float32(ctrl.Value) * (fmtAmtHi / poly.MaxMIDI)
+		dx7.ctrls["op1amt"] = float32(ctrl.Value) * (fmtAmtHi / 127)
 	case 107: // op2 Freq Scale
 		dx7.ctrls["op2freqscale"] = getOp2FreqScale(ctrl.Value)
 	case 108:
 		dx7.ctrls["op2decay"] = linear(ctrl.Value, decayLo, decayHi)
 	case 109:
-		dx7.ctrls["op2sustain"] = float32(ctrl.Value) / poly.MaxMIDI
+		dx7.ctrls["op2sustain"] = float32(ctrl.Value) / 127
 	}
 	return dx7.ctrls
 }
@@ -81,6 +79,6 @@ func getOp2FreqScale(value int) float32 {
 }
 
 func linear(val int, min, max float32) float32 {
-	norm := float32(val) / poly.MaxMIDI
+	norm := float32(val) / 127
 	return (norm * (max - min)) + min
 }
