@@ -4,6 +4,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/scgolang/sc"
 )
 
@@ -14,6 +15,7 @@ type DX7 struct {
 	ctrls          map[string]float32
 	flags          *flag.FlagSet
 	midiDeviceName string
+	pass           bool
 	scsynthAddr    string
 }
 
@@ -27,8 +29,11 @@ func (dx7 *DX7) Listen() error {
 	return nil
 }
 
-// run the dx7.
+// run runs the dx7.
 func (dx7 *DX7) run() error {
+	if dx7.pass {
+		return nil
+	}
 	// Connect to scsynth.
 	if err := dx7.Connect(); err != nil {
 		return err
@@ -57,7 +62,11 @@ func New() (*DX7, error) {
 	dx7.flags.StringVar(&dx7.midiDeviceName, "d", "", "MIDI device name")
 	dx7.flags.StringVar(&dx7.scsynthAddr, "scsynth", "127.0.0.1:57120", "scsynth UDP listening address")
 
-	dx7.flags.Parse(os.Args[1:])
-
+	if err := dx7.flags.Parse(os.Args[1:]); err != nil {
+		if err == flag.ErrHelp {
+			return &DX7{pass: true}, nil
+		}
+		return nil, errors.Wrap(err, "parsing flags")
+	}
 	return dx7, nil
 }

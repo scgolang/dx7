@@ -1,0 +1,11 @@
+*~
+*.gosyndef
+*.svg
+*.dot
+*.log
+*.xml
+*.json
+core
+
+# makefile cache
+.fixtures
